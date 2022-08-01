@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2021"],
+    "module": "commonjs",
+    "outDir": "../../dist/preload",
+    "target": "es2022"
+  },
+}
