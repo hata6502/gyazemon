@@ -1,5 +1,7 @@
 # gyazemon
 
+<img src="https://i.gyazo.com/32df5285f7761fd9713061b58ee9a8ac.png" width="256"/>
+
 Watch directory and upload to Gyazo for Ubuntu.
 
 ⚠This is an **unofficial** Gyazo app.
