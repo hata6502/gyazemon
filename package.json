@@ -1,6 +1,6 @@
 {
   "name": "gyazemon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Watch directory and upload to Gyazo for Ubuntu. ",
   "homepage": "https://github.com/hata6502/gyazemon",
