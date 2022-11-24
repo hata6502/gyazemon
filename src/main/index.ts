@@ -251,11 +251,25 @@ import { pathToFileURL } from "url";
           formData.append("desc", description);
           formData.append("created_at", mtimeMs / 1000 - loadedDataIndex);
 
-          const uploadResponse = await fetch(
-            "https://upload.gyazo.com/api/upload",
-            { method: "POST", body: formData }
-          );
-          if (!uploadResponse.ok) {
+          let uploadResponse;
+          for (
+            let uploadRetryCount = 0;
+            uploadRetryCount < 3;
+            uploadRetryCount++
+          ) {
+            try {
+              uploadResponse = await fetch(
+                "https://upload.gyazo.com/api/upload",
+                { method: "POST", body: formData }
+              );
+            } catch {
+              continue;
+            }
+
+            if (uploadResponse.ok) {
+              break;
+            }
+
             // https://gyazo.com/api/docs/errors
             if (uploadResponse.status === 429) {
               queue.clear();
@@ -263,14 +277,18 @@ import { pathToFileURL } from "url";
                 title: "Canceled the upload processes to Gyazo. ",
                 body: "Gyazo API rate limit exceeded. Please try again later. ",
               }).show();
+              break;
             }
-
+          }
+          if (!uploadResponse || !uploadResponse.ok) {
             throw new Error(
-              `Upload error. ${uploadResponse.status} ${uploadResponse.statusText}`
+              `Upload error. ${uploadResponse?.status ?? ""} ${
+                uploadResponse?.statusText ?? ""
+              }`
             );
           }
-          uploadResponses.push(uploadResponse);
 
+          uploadResponses.push(uploadResponse);
           log.info("Uploaded. ");
         }
 
