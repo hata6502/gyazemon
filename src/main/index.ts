@@ -14,6 +14,7 @@ import {
 import openAboutWindow from "electron-about-window";
 import log from "electron-log";
 import Store from "electron-store";
+import { setUpdateNotification } from "electron-update-notifier";
 import FormData from "form-data";
 import { readFile, rename, stat } from "fs/promises";
 import fetch from "node-fetch";
@@ -34,6 +35,7 @@ import { pathToFileURL } from "url";
   }
   app.dock?.hide();
   app.on("window-all-closed", () => {});
+  setUpdateNotification();
 
   const store = new Store();
   ipcMain.handle("getFromStore", (_event, key: string) => store.get(key));

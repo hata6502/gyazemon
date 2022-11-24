@@ -4,6 +4,10 @@
   "private": true,
   "description": "Watch directory and upload to Gyazo for Ubuntu. ",
   "homepage": "https://github.com/hata6502/gyazemon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hata6502/gyazemon.git"
+  },
   "author": "Tomoyuki Hata",
   "main": "dist/main/index.js",
   "scripts": {
@@ -67,6 +71,7 @@
     "electron-log": "^4.4.8",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
+    "electron-update-notifier": "^1.7.0",
     "form-data": "^4.0.0",
     "node-fetch": "^2.6.7",
     "p-queue": "^6.6.2",
