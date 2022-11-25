@@ -22,6 +22,7 @@ import { hostname, userInfo } from "os";
 import PQueue from "p-queue";
 import { basename, dirname, extname, resolve } from "path";
 import { pathToFileURL } from "url";
+import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
 (async () => {
   if (process.env.npm_lifecycle_event !== "start") {
@@ -62,7 +63,7 @@ import { pathToFileURL } from "url";
 
   const tray = new Tray(
     nativeImage.createFromPath(
-      resolve(__dirname, "../../resources/trayTemplate@2x.png")
+      resolve(__dirname, "../../../resources/trayTemplate@2x.png")
     )
   );
   tray.setToolTip("gyazemon");
@@ -78,12 +79,12 @@ import { pathToFileURL } from "url";
       width: 640,
       height: 480,
       webPreferences: {
-        preload: resolve(__dirname, "../preload/index.js"),
+        preload: resolve(__dirname, "../../preload/index.js"),
       },
     });
     settingsWindow.setMenu(null);
     await settingsWindow.loadFile(
-      resolve(__dirname, "../../resources/settings.html")
+      resolve(__dirname, "../../../resources/settings.html")
     );
     settingsWindow.on("closed", () => {
       settingsWindow = undefined;
@@ -110,8 +111,8 @@ import { pathToFileURL } from "url";
             }
 
             aboutWindow = openAboutWindow({
-              icon_path: resolve(__dirname, "../../resources/icon.png"),
-              package_json_dir: resolve(__dirname, "../.."),
+              icon_path: resolve(__dirname, "../../../resources/icon.png"),
+              package_json_dir: resolve(__dirname, "../../.."),
             });
             aboutWindow.on("closed", () => {
               aboutWindow = undefined;
@@ -134,10 +135,9 @@ import { pathToFileURL } from "url";
   queue.on("add", setTrayMenu);
   queue.on("next", setTrayMenu);
 
-  const watchlist = (await store.get("watchlist")) ?? [];
-  if (!Array.isArray(watchlist)) {
-    throw new Error("watchlist is not array. ");
-  }
+  const watchlist = toWatchlistV2(
+    ((await store.get("watchlist")) ?? []) as Watch[]
+  );
 
   const gyazoAccessToken = await store.get("gyazoAccessToken");
   if (typeof gyazoAccessToken === "string" && gyazoAccessToken !== "") {
@@ -168,7 +168,7 @@ import { pathToFileURL } from "url";
             show: false,
             webPreferences: {
               offscreen: true,
-              preload: resolve(__dirname, "../preload/index.js"),
+              preload: resolve(__dirname, "../../preload/index.js"),
             },
           });
 
@@ -192,7 +192,7 @@ import { pathToFileURL } from "url";
               });
 
               await browserWindow.loadFile(
-                resolve(__dirname, "../../resources/pdf.html")
+                resolve(__dirname, "../../../resources/pdf.html")
               );
             }
           );
@@ -211,12 +211,10 @@ import { pathToFileURL } from "url";
 
     const debounceCounts = new Map<string, number>();
     const upload = async ({
-      ext,
       path,
-    }: {
-      ext: AvailableExt;
-      path: string;
-    }) => {
+      opensNewTab,
+      ext,
+    }: WatchV2 & { ext: AvailableExt }) => {
       debounceCounts.delete(path);
 
       try {
@@ -294,8 +292,9 @@ import { pathToFileURL } from "url";
           log.info("Uploaded. ");
         }
 
+        const firstUploadResponse = await uploadResponses[0].json();
         uploadedList = [
-          { ...(await uploadResponses[0].json()), title: basename(path) },
+          { ...firstUploadResponse, title: basename(path) },
           ...uploadedList,
         ].slice(0, 10);
 
@@ -303,6 +302,10 @@ import { pathToFileURL } from "url";
           path,
           resolve(dirname(path), `(Uploaded)${basename(path)}`)
         );
+
+        if (opensNewTab) {
+          shell.openExternal(firstUploadResponse.permalink_url);
+        }
       } catch (exception) {
         log.error(exception);
         new Notification({
@@ -312,12 +315,12 @@ import { pathToFileURL } from "url";
       }
     };
 
-    const handleEvent = async (path: string) => {
-      if (basename(path).startsWith("(Uploaded)")) {
+    const handleEvent = async (watch: WatchV2) => {
+      if (basename(watch.path).startsWith("(Uploaded)")) {
         return;
       }
 
-      const ext = extname(path);
+      const ext = extname(watch.path);
       switch (ext) {
         case ".gif":
         case ".jpeg":
@@ -337,8 +340,8 @@ import { pathToFileURL } from "url";
         ? AvailableExt
         : never = ext;
 
-      const debounceCount = debounceCounts.get(path) ?? 0;
-      debounceCounts.set(path, debounceCount + 1);
+      const debounceCount = debounceCounts.get(watch.path) ?? 0;
+      debounceCounts.set(watch.path, debounceCount + 1);
       if (debounceCount) {
         return;
       }
@@ -354,19 +357,19 @@ import { pathToFileURL } from "url";
       }[availableExt];
       let prevDebounceCount;
       do {
-        prevDebounceCount = debounceCounts.get(path);
+        prevDebounceCount = debounceCounts.get(watch.path);
         await new Promise((resolve) => setTimeout(resolve, debounceTime));
-      } while (debounceCounts.get(path) !== prevDebounceCount);
+      } while (debounceCounts.get(watch.path) !== prevDebounceCount);
 
-      await queue.add(() => upload({ ext: availableExt, path }));
+      await queue.add(() => upload({ ...watch, ext: availableExt }));
     };
 
-    for (const path of watchlist) {
+    for (const watch of watchlist) {
       chokidar
-        .watch(path, { ignoreInitial: true })
-        .on("add", (path) => handleEvent(path))
-        .on("change", (path) => handleEvent(path))
-        .on("ready", () => log.info(`Watching ${path} ...`));
+        .watch(watch.path, { ignoreInitial: true })
+        .on("add", (path) => handleEvent({ ...watch, path }))
+        .on("change", (path) => handleEvent({ ...watch, path }))
+        .on("ready", () => log.info(`Watching ${watch.path} ...`));
     }
   } else {
     await openSettingsWindow();

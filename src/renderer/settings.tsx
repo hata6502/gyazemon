@@ -1,9 +1,10 @@
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { FunctionComponent, StrictMode, Suspense, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
 let initialGyazoAccessToken: string | undefined;
-let initialWatchlist: string[] | undefined;
+let initialWatchlist: WatchV2[] | undefined;
 const App: FunctionComponent = () => {
   if (initialGyazoAccessToken === undefined) {
     throw (async () => {
@@ -18,11 +19,9 @@ const App: FunctionComponent = () => {
 
   if (!initialWatchlist) {
     throw (async () => {
-      const watchlist = (await electronAPI.getFromStore("watchlist")) ?? [];
-      if (!Array.isArray(watchlist)) {
-        throw new Error("watchlist is not array. ");
-      }
-      initialWatchlist = watchlist;
+      initialWatchlist = toWatchlistV2(
+        ((await electronAPI.getFromStore("watchlist")) ?? []) as Watch[]
+      );
     })();
   }
 
@@ -32,7 +31,7 @@ const App: FunctionComponent = () => {
   const [watchlist, setWatchlist] = useState(initialWatchlist);
 
   return (
-    <div className="container mx-auto px-4 py-4">
+    <div className="container mx-auto px-4 py-4 text-slate-700 text-sm">
       <h2 className="mb-4 font-medium text-2xl">Settings</h2>
 
       <form
@@ -44,9 +43,7 @@ const App: FunctionComponent = () => {
         }}
       >
         <label className="block mb-4">
-          <span className="block font-medium text-sm text-slate-700">
-            Gyazo API access token
-          </span>
+          <span className="block font-medium">Gyazo API access token</span>
           <input
             type="password"
             className="mt-1 px-3 py-2 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-violet-500 block w-full rounded-md sm:text-sm focus:ring-1"
@@ -59,47 +56,67 @@ const App: FunctionComponent = () => {
         </label>
 
         <div className="mb-4">
-          <span className="block font-medium text-sm text-slate-700">
-            Watchlist
-          </span>
+          <div className="font-medium">Watchlist</div>
+          Directories to be watched and uploaded to Gyazo. <br />
+          Only upload files that were placed later.
+          <table className="border-collapse mb-2 table-auto w-full">
+            <thead>
+              <tr>
+                <th className="border-b font-medium p-2 text-left">Path</th>
+                <th className="border-b font-medium p-2">Open new tab</th>
+                <th className="border-b font-medium p-2"></th>
+              </tr>
+            </thead>
 
-          <div className="text-sm text-slate-700">
-            Directories to be watched and uploaded to Gyazo. <br />
-            Only upload files that were placed later.
-          </div>
+            <tbody>
+              {watchlist.map(({ path, opensNewTab }, index) => (
+                <tr key={index}>
+                  <td className="border-b border-slate-100 p-2">{path}</td>
 
-          <ul className="mb-2">
-            {watchlist.map((path, index) => (
-              <li
-                key={index}
-                className="flex items-center py-2 border-b border-gray-200 text-sm"
-              >
-                <div className="flex-1">{path}</div>
+                  <td className="border-b border-slate-100 p-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={opensNewTab}
+                      onChange={(event) => {
+                        setWatchlist((prevWatchlist) => [
+                          ...prevWatchlist.slice(0, index),
+                          {
+                            ...prevWatchlist[index],
+                            opensNewTab: event.target.checked,
+                          },
+                          ...prevWatchlist.slice(index + 1),
+                        ]);
+                      }}
+                    />
+                  </td>
 
-                <div className="flex-none">
-                  <button
-                    type="button"
-                    className="px-2 py-2 rounded-full bg-white hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-0 active:bg-gray-200"
-                    onClick={() => {
-                      setWatchlist((prevWatchlist) => [
-                        ...prevWatchlist.slice(0, index),
-                        ...prevWatchlist.slice(index + 1),
-                      ]);
-                    }}
-                  >
-                    <TrashIcon className="w-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-
+                  <td className="border-b border-slate-100 p-2 text-center">
+                    <button
+                      type="button"
+                      className="px-2 py-2 rounded-full bg-white hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-0 active:bg-gray-200"
+                      onClick={() => {
+                        setWatchlist((prevWatchlist) => [
+                          ...prevWatchlist.slice(0, index),
+                          ...prevWatchlist.slice(index + 1),
+                        ]);
+                      }}
+                    >
+                      <TrashIcon className="w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <button
             type="button"
             className="px-2 py-2 rounded-full bg-violet-500 text-white hover:bg-violet-600 focus:bg-violet-600 focus:outline-none focus:ring-0 active:bg-violet-700"
             onClick={async () => {
               const paths = await electronAPI.selectDirectory();
-              setWatchlist((prevWatchlist) => [...prevWatchlist, ...paths]);
+              setWatchlist((prevWatchlist) => [
+                ...prevWatchlist,
+                ...paths.map((path) => ({ path, opensNewTab: false })),
+              ]);
             }}
           >
             <PlusIcon className="w-4" />
@@ -109,7 +126,7 @@ const App: FunctionComponent = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="bg-violet-500 hover:bg-violet-600 focus:outline-none focus:ring focus:ring-violet-300 active:bg-violet-700 px-5 py-2 text-sm rounded font-medium text-white"
+            className="bg-violet-500 hover:bg-violet-600 focus:outline-none focus:ring focus:ring-violet-300 active:bg-violet-700 px-5 py-2 rounded font-medium text-white"
           >
             Save &amp; restart
           </button>
