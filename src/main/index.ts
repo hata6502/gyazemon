@@ -218,7 +218,11 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       debounceCounts.delete(path);
 
       try {
-        const { mtimeMs } = await stat(path);
+        const { mtimeMs, size } = await stat(path);
+        if (!size) {
+          return;
+        }
+
         const loadedDataList = await load({ ext, path });
         const uploadResponses = [];
         for (const [loadedDataIndex, loadedData] of loadedDataList.entries()) {
