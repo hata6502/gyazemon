@@ -94,8 +94,8 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   let aboutWindow: BrowserWindow | undefined;
   // Rate Limits https://gyazo.com/api/docs/errors
   const uploadQueue = new PQueue({
-    interval: 10 * 60 * 1000,
-    intervalCap: 86,
+    interval: 1 * 60 * 1000,
+    intervalCap: 8,
   });
   let uploadedList: { title: string; permalink_url: string }[] = [];
   const setTrayMenu = () => {
