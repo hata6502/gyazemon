@@ -4,9 +4,14 @@
 
 ### 🏠 [Homepage](https://helpfeel.com/hata6502/--637f80ed79908d001d0d24db)
 
-Watch directory and upload to Gyazo for Ubuntu and Windows.
+Headless Gyazo app for desktop PC.
 
 ⚠This is an **unofficial** Gyazo app.
+
+## "headless" means...
+
+it does not have a screenshot-taking function.
+Instead, it watches directories and uploads media to Gyazo.
 
 ## Download
 
@@ -16,6 +21,9 @@ Download the app from [releases page](https://github.com/hata6502/gyazemon/relea
   - AMD: gyazemon_x.x.x_amd64.deb
   - ARM: gyazemon_x.x.x_arm64.deb
 - Windows: gyazemon-x.x.x.Setup.exe
+- Mac
+  - M1: gyazemon-x.x.x-arm64.dmg
+  - Intel: gyazemon-x.x.x-x64.dmg
 
 ## Usage
 

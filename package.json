@@ -2,7 +2,7 @@
   "name": "gyazemon",
   "version": "1.3.3",
   "private": true,
-  "description": "Watch directory and upload to Gyazo for Ubuntu and Windows. ",
+  "description": "Headless Gyazo app for desktop PC. ",
   "homepage": "https://github.com/hata6502/gyazemon",
   "repository": {
     "type": "git",
