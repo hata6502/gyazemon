@@ -284,6 +284,8 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
                 // Rate Limits https://gyazo.com/api/docs/errors
                 if (uploadResponse.status === 429) {
                   uploadQueue.clear();
+                  setTrayMenu();
+
                   new Notification({
                     title: "Canceled the upload processes to Gyazo. ",
                     body: "Gyazo API rate limit exceeded. Please try again later. ",
@@ -310,6 +312,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
           { ...firstUploadResponse, title: basename(path) },
           ...uploadedList,
         ].slice(0, 10);
+        setTrayMenu();
 
         await rename(
           path,
