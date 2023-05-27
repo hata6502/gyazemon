@@ -138,7 +138,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   setTrayMenu();
   uploadQueue.on("add", setTrayMenu);
   uploadQueue.on("next", setTrayMenu);
-  uploadQueue.on("idle", setTrayMenu);
 
   const watchlist = toWatchlistV2(
     ((await store.get("watchlist")) ?? []) as Watch[]
