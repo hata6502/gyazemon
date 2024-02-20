@@ -19,7 +19,7 @@ jobs:
       # Cannot find module 'appdmg' · Issue #2807 · electron/forge https://github.com/electron/forge/issues/2807
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: "3.10"
       - uses: actions/setup-node@v3
         with:
           node-version: 20
