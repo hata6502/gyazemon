@@ -15,9 +15,7 @@ import openAboutWindow from "electron-about-window";
 import log from "electron-log";
 import Store from "electron-store";
 import { setUpdateNotification } from "electron-update-notifier";
-import FormData from "form-data";
 import { readFile, rename, stat } from "fs/promises";
-import fetch from "node-fetch";
 import { hostname, userInfo } from "os";
 import PQueue from "p-queue";
 import { basename, dirname, extname, resolve } from "path";
@@ -249,12 +247,15 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
               url.pathname = pathToFileURL(path).pathname;
 
               formData.append("access_token", gyazoAccessToken);
-              formData.append("imagedata", loadedData, "dummy.png");
+              formData.append("imagedata", new Blob([loadedData]), "dummy.png");
               formData.append("referer_url", String(url));
               formData.append("app", "gyazemon");
               formData.append("title", title);
               formData.append("desc", description);
-              formData.append("created_at", mtimeMs / 1000 - loadedDataIndex);
+              formData.append(
+                "created_at",
+                String(mtimeMs / 1000 - loadedDataIndex)
+              );
 
               let uploadResponse;
               for (
@@ -267,6 +268,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
                     fetch("https://upload.gyazo.com/api/upload", {
                       method: "POST",
                       body: formData,
+                      signal: AbortSignal.timeout(3 * 60 * 1000),
                     })
                   );
                 } catch {
@@ -276,7 +278,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
                 if (uploadResponse.ok) {
                   break;
                 }
-
                 // Rate Limits https://gyazo.com/api/docs/errors
                 if (uploadResponse.status === 429) {
                   uploadQueue.clear();
