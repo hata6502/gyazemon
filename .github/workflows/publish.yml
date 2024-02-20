@@ -16,6 +16,10 @@ jobs:
             arch: arm64
     steps:
       - uses: actions/checkout@v3
+      # Cannot find module 'appdmg' · Issue #2807 · electron/forge https://github.com/electron/forge/issues/2807
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
       - uses: actions/setup-node@v3
         with:
           node-version: 20
