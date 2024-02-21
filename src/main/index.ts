@@ -142,18 +142,13 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
   const gyazoAccessToken = await configStore.get("gyazoAccessToken");
   if (typeof gyazoAccessToken === "string" && gyazoAccessToken !== "") {
-    const availableExts = [
-      ".gif",
-      ".jpeg",
-      ".jpg",
-      ".png",
-      ".webp",
-
-      ".pdf",
-    ] as const;
-    type AvailableExt = (typeof availableExts)[number];
-
-    const load = async ({ ext, file }: { ext: AvailableExt; file: Buffer }) => {
+    const load = async ({
+      ext,
+      file,
+    }: {
+      ext: ".gif" | ".jpeg" | ".jpg" | ".png" | ".webp" | ".pdf";
+      file: Buffer;
+    }) => {
       switch (ext) {
         case ".gif":
         case ".jpeg":
@@ -315,9 +310,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
           return;
         }
       }
-      const availableExt: AvailableExt extends typeof ext
-        ? AvailableExt
-        : never = ext;
 
       const { mtimeMs, size } = await stat(watch.path);
       if (!size) {
