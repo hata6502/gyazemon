@@ -374,7 +374,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
           shell.openExternal(firstUploadResponse.permalink_url);
         }
 
-        // Store only irreversible information
+        // Store minimal data
         uploadedStore.set(fileID, true);
       } catch (exception) {
         log.error(exception);
