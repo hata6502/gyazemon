@@ -36,10 +36,13 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   app.on("window-all-closed", () => {});
   setUpdateNotification();
 
-  const store = new Store();
-  ipcMain.handle("getFromStore", (_event, key: string) => store.get(key));
-  ipcMain.handle("setToStore", (_event, key: string, value?: unknown) =>
-    store.set(key, value)
+  const uploadedStore = new Store({ name: "uploaded" });
+  const configStore = new Store();
+  ipcMain.handle("getFromConfigStore", (_event, key: string) =>
+    configStore.get(key)
+  );
+  ipcMain.handle("setToConfigStore", (_event, key: string, value?: unknown) =>
+    configStore.set(key, value)
   );
 
   ipcMain.handle("selectDirectory", async () => {
@@ -134,10 +137,10 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   uploadQueue.on("next", setTrayMenu);
 
   const watchlist = toWatchlistV2(
-    ((await store.get("watchlist")) ?? []) as Watch[]
+    ((await configStore.get("watchlist")) ?? []) as Watch[]
   );
 
-  const gyazoAccessToken = await store.get("gyazoAccessToken");
+  const gyazoAccessToken = await configStore.get("gyazoAccessToken");
   if (typeof gyazoAccessToken === "string" && gyazoAccessToken !== "") {
     const availableExts = [
       ".gif",
@@ -149,19 +152,17 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
     ] as const;
     type AvailableExt = (typeof availableExts)[number];
 
-    const load = async ({ ext, path }: { ext: AvailableExt; path: string }) => {
+    const load = async ({ ext, file }: { ext: AvailableExt; file: Buffer }) => {
       switch (ext) {
         case ".gif":
         case ".jpeg":
         case ".jpg":
         case ".png":
         case ".webp": {
-          return [await readFile(path)];
+          return [file];
         }
 
         case ".pdf": {
-          log.info(`Rendering ${path} ...`);
-
           const browserWindow = new BrowserWindow({
             show: false,
             webPreferences: {
@@ -173,10 +174,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
           const pageImages = await new Promise<Buffer[]>(
             async (resolvePromise) => {
               const pageImages: Buffer[] = [];
-              ipcMain.handleOnce(
-                "getPDF",
-                (): Promise<ArrayBuffer> => readFile(path)
-              );
+              ipcMain.handleOnce("getPDF", (): ArrayBuffer => file);
               ipcMain.handle(
                 "setPageImage",
                 (_event, pageImage: ArrayBuffer) => {
@@ -196,143 +194,111 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
           );
           browserWindow.close();
 
-          log.info(`Rendered ${path}`);
           return pageImages;
         }
 
         default: {
-          const exhaustiveCheck: never = ext;
-          throw new Error(`Unknown ext: ${exhaustiveCheck}`);
+          throw new Error(`Unknown ext: ${ext satisfies never}`);
         }
       }
+    };
+
+    const upload = async ({
+      loadedDataList,
+      mtimeMs,
+      path,
+    }: {
+      loadedDataList: Buffer[];
+      mtimeMs: number;
+      path: string;
+    }) => {
+      const uploadResponses = await Promise.all(
+        [...loadedDataList.entries()].map(
+          async ([loadedDataIndex, loadedData]) => {
+            const oneBasedLoadedDataIndex = loadedDataIndex + 1;
+            log.info(`Uploading ${oneBasedLoadedDataIndex} of ${path} ...`);
+
+            const formData = new FormData();
+            const title =
+              loadedDataList.length < 2
+                ? basename(path)
+                : `${oneBasedLoadedDataIndex}/${
+                    loadedDataList.length
+                  } ${basename(path)}`;
+
+            const description = `${title}
+`;
+
+            // Use http scheme instead of unsupported file scheme.
+            const url = new URL("http://localhost/");
+            url.protocol = "http:";
+            url.username = userInfo().username;
+            url.hostname = hostname();
+            url.pathname = pathToFileURL(path).pathname;
+
+            formData.append("access_token", gyazoAccessToken);
+            formData.append("imagedata", new Blob([loadedData]), "dummy.png");
+            formData.append("referer_url", String(url));
+            formData.append("app", "gyazemon");
+            formData.append("title", title);
+            formData.append("desc", description);
+            formData.append(
+              "created_at",
+              String(mtimeMs / 1000 - loadedDataIndex)
+            );
+
+            let uploadResponse;
+            for (
+              let uploadRetryCount = 0;
+              uploadRetryCount < 3;
+              uploadRetryCount++
+            ) {
+              try {
+                uploadResponse = await uploadQueue.add(() =>
+                  fetch("https://upload.gyazo.com/api/upload", {
+                    method: "POST",
+                    body: formData,
+                    signal: AbortSignal.timeout(3 * 60 * 1000),
+                  })
+                );
+              } catch {
+                continue;
+              }
+
+              if (uploadResponse.ok) {
+                break;
+              }
+              // Rate Limits https://gyazo.com/api/docs/errors
+              if (uploadResponse.status === 429) {
+                uploadQueue.clear();
+                setTrayMenu();
+
+                new Notification({
+                  title: "Canceled the upload processes to Gyazo. ",
+                  body: "Gyazo API rate limit exceeded. Please try again later. ",
+                }).show();
+                break;
+              }
+            }
+            if (!uploadResponse || !uploadResponse.ok) {
+              throw new Error(
+                `Upload error. ${uploadResponse?.status ?? ""} ${
+                  uploadResponse?.statusText ?? ""
+                }`
+              );
+            }
+
+            log.info(`Uploaded ${oneBasedLoadedDataIndex} of ${path}`);
+            return uploadResponse;
+          }
+        )
+      );
+
+      return uploadResponses[0].json();
     };
 
     const debounceCounts = new Map<string, number>();
-    const upload = async ({
-      path,
-      opensNewTab,
-      ext,
-    }: WatchV2 & { ext: AvailableExt }) => {
-      debounceCounts.delete(path);
-
-      try {
-        const { mtimeMs, size } = await stat(path);
-        if (!size) {
-          return;
-        }
-
-        const loadedDataList = await load({ ext, path });
-        const uploadResponses = await Promise.all(
-          [...loadedDataList.entries()].map(
-            async ([loadedDataIndex, loadedData]) => {
-              const oneBasedLoadedDataIndex = loadedDataIndex + 1;
-              log.info(`Uploading ${oneBasedLoadedDataIndex} of ${path} ...`);
-
-              const formData = new FormData();
-              const title =
-                loadedDataList.length < 2
-                  ? basename(path)
-                  : `${oneBasedLoadedDataIndex}/${
-                      loadedDataList.length
-                    } ${basename(path)}`;
-
-              const description = `${title}
-`;
-
-              // Use http scheme instead of unsupported file scheme.
-              const url = new URL("http://localhost/");
-              url.protocol = "http:";
-              url.username = userInfo().username;
-              url.hostname = hostname();
-              url.pathname = pathToFileURL(path).pathname;
-
-              formData.append("access_token", gyazoAccessToken);
-              formData.append("imagedata", new Blob([loadedData]), "dummy.png");
-              formData.append("referer_url", String(url));
-              formData.append("app", "gyazemon");
-              formData.append("title", title);
-              formData.append("desc", description);
-              formData.append(
-                "created_at",
-                String(mtimeMs / 1000 - loadedDataIndex)
-              );
-
-              let uploadResponse;
-              for (
-                let uploadRetryCount = 0;
-                uploadRetryCount < 3;
-                uploadRetryCount++
-              ) {
-                try {
-                  uploadResponse = await uploadQueue.add(() =>
-                    fetch("https://upload.gyazo.com/api/upload", {
-                      method: "POST",
-                      body: formData,
-                      signal: AbortSignal.timeout(3 * 60 * 1000),
-                    })
-                  );
-                } catch {
-                  continue;
-                }
-
-                if (uploadResponse.ok) {
-                  break;
-                }
-                // Rate Limits https://gyazo.com/api/docs/errors
-                if (uploadResponse.status === 429) {
-                  uploadQueue.clear();
-                  setTrayMenu();
-
-                  new Notification({
-                    title: "Canceled the upload processes to Gyazo. ",
-                    body: "Gyazo API rate limit exceeded. Please try again later. ",
-                  }).show();
-                  break;
-                }
-              }
-              if (!uploadResponse || !uploadResponse.ok) {
-                throw new Error(
-                  `Upload error. ${uploadResponse?.status ?? ""} ${
-                    uploadResponse?.statusText ?? ""
-                  }`
-                );
-              }
-
-              log.info(`Uploaded ${oneBasedLoadedDataIndex} of ${path}`);
-              return uploadResponse;
-            }
-          )
-        );
-
-        const firstUploadResponse = await uploadResponses[0].json();
-        uploadedList = [
-          { ...firstUploadResponse, title: basename(path) },
-          ...uploadedList,
-        ].slice(0, 10);
-        setTrayMenu();
-
-        await rename(
-          path,
-          resolve(dirname(path), `(Uploaded)${basename(path)}`)
-        );
-
-        if (opensNewTab) {
-          shell.openExternal(firstUploadResponse.permalink_url);
-        }
-      } catch (exception) {
-        log.error(exception);
-        new Notification({
-          title: "Failed to upload to Gyazo. ",
-          body: `${path}\nPlease check the log. `,
-        }).show();
-      }
-    };
-
     const handleEvent = async (watch: WatchV2) => {
-      if (basename(watch.path).startsWith("(Uploaded)")) {
-        return;
-      }
-
       const ext = extname(watch.path);
       switch (ext) {
         case ".gif":
@@ -374,7 +340,49 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
         await new Promise((resolve) => setTimeout(resolve, debounceTime));
       } while (debounceCounts.get(watch.path) !== prevDebounceCount);
 
-      await upload({ ...watch, ext: availableExt });
+      const { mtimeMs, size } = await stat(watch.path);
+      if (!size) {
+        return;
+      }
+
+      const file = await readFile(watch.path);
+      const fileID = [
+        ...new Uint8Array(await crypto.subtle.digest("SHA-256", file)),
+      ]
+        .map((uint8) => uint8.toString(16).padStart(2, "0"))
+        .join("");
+      log.info("File ID", fileID);
+      if (uploadedStore.get(fileID)) {
+        return;
+      }
+
+      debounceCounts.delete(watch.path);
+      try {
+        const loadedDataList = await load({ ext, file });
+        const firstUploadResponse = await upload({
+          loadedDataList,
+          mtimeMs,
+          path: watch.path,
+        });
+
+        uploadedList = [
+          { ...firstUploadResponse, title: basename(watch.path) },
+          ...uploadedList,
+        ].slice(0, 10);
+        setTrayMenu();
+        if (watch.opensNewTab) {
+          shell.openExternal(firstUploadResponse.permalink_url);
+        }
+
+        // Store only irreversible information
+        uploadedStore.set(fileID, true);
+      } catch (exception) {
+        log.error(exception);
+        new Notification({
+          title: "Failed to upload to Gyazo. ",
+          body: `${watch.path}\nPlease check the log. `,
+        }).show();
+      }
     };
 
     for (const watch of watchlist) {

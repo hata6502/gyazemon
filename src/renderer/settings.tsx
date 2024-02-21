@@ -9,7 +9,7 @@ const App: FunctionComponent = () => {
   if (initialGyazoAccessToken === undefined) {
     throw (async () => {
       const gyazoAccessToken =
-        (await electronAPI.getFromStore("gyazoAccessToken")) ?? "";
+        (await electronAPI.getFromConfigStore("gyazoAccessToken")) ?? "";
       if (typeof gyazoAccessToken !== "string") {
         throw new Error("gyazoAccessTokenValue is not string. ");
       }
@@ -20,7 +20,7 @@ const App: FunctionComponent = () => {
   if (!initialWatchlist) {
     throw (async () => {
       initialWatchlist = toWatchlistV2(
-        ((await electronAPI.getFromStore("watchlist")) ?? []) as Watch[]
+        ((await electronAPI.getFromConfigStore("watchlist")) ?? []) as Watch[]
       );
     })();
   }
@@ -37,8 +37,11 @@ const App: FunctionComponent = () => {
       <form
         onSubmit={async (event) => {
           event.preventDefault();
-          await electronAPI.setToStore("gyazoAccessToken", gyazoAccessToken);
-          await electronAPI.setToStore("watchlist", watchlist);
+          await electronAPI.setToConfigStore(
+            "gyazoAccessToken",
+            gyazoAccessToken
+          );
+          await electronAPI.setToConfigStore("watchlist", watchlist);
           await electronAPI.restart();
         }}
       >

@@ -6,10 +6,10 @@ const api = {
     ipcRenderer.invoke("selectDirectory"),
   restart: (): Promise<void> => ipcRenderer.invoke("restart"),
 
-  getFromStore: (key: string): Promise<unknown> =>
-    ipcRenderer.invoke("getFromStore", key),
-  setToStore: (key: string, value?: unknown): Promise<void> =>
-    ipcRenderer.invoke("setToStore", key, value),
+  getFromConfigStore: (key: string): Promise<unknown> =>
+    ipcRenderer.invoke("getFromConfigStore", key),
+  setToConfigStore: (key: string, value?: unknown): Promise<void> =>
+    ipcRenderer.invoke("setToConfigStore", key, value),
 
   getPDF: (): Promise<ArrayBuffer> => ipcRenderer.invoke("getPDF"),
   setPageImage: (pageImage: ArrayBuffer): Promise<void> =>
