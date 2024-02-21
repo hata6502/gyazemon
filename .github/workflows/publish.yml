@@ -10,8 +10,7 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          # Cannot find module 'appdmg' · Issue #2807 · electron/forge https://github.com/electron/forge/issues/2807
-          #- macos-latest
+          - macos-latest
         arch: [x64, arm64]
         exclude:
           - os: windows-latest
@@ -19,8 +18,11 @@ jobs:
           - os: macos-latest
             arch: arm64
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      # https://github.com/electron/forge/issues/2807
+      - run: python3 -m pip install setuptools
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
