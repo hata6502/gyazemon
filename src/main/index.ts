@@ -15,10 +15,10 @@ import openAboutWindow from "electron-about-window";
 import log from "electron-log";
 import Store from "electron-store";
 import { setUpdateNotification } from "electron-update-notifier";
-import { readFile, rename, stat } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import { hostname, userInfo } from "os";
 import PQueue from "p-queue";
-import { basename, dirname, extname, resolve } from "path";
+import { basename, extname, resolve } from "path";
 import { pathToFileURL } from "url";
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
@@ -148,6 +148,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       ".jpg",
       ".png",
       ".webp",
+
       ".pdf",
     ] as const;
     type AvailableExt = (typeof availableExts)[number];
@@ -297,7 +298,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       return uploadResponses[0].json();
     };
 
-    const debounceCounts = new Map<string, number>();
     const handleEvent = async (watch: WatchV2) => {
       const ext = extname(watch.path);
       switch (ext) {
@@ -319,27 +319,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
         ? AvailableExt
         : never = ext;
 
-      const debounceCount = debounceCounts.get(watch.path) ?? 0;
-      debounceCounts.set(watch.path, debounceCount + 1);
-      if (debounceCount) {
-        return;
-      }
-
-      const debounceTime = {
-        ".gif": 500,
-        ".jpeg": 500,
-        ".jpg": 500,
-        ".png": 500,
-        ".webp": 500,
-
-        ".pdf": 500,
-      }[availableExt];
-      let prevDebounceCount;
-      do {
-        prevDebounceCount = debounceCounts.get(watch.path);
-        await new Promise((resolve) => setTimeout(resolve, debounceTime));
-      } while (debounceCounts.get(watch.path) !== prevDebounceCount);
-
       const { mtimeMs, size } = await stat(watch.path);
       if (!size) {
         return;
@@ -356,9 +335,12 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
         return;
       }
 
-      debounceCounts.delete(watch.path);
       try {
         const loadedDataList = await load({ ext, file });
+        if (!loadedDataList.length) {
+          return;
+        }
+
         const firstUploadResponse = await upload({
           loadedDataList,
           mtimeMs,
@@ -387,7 +369,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
     for (const watch of watchlist) {
       chokidar
-        .watch(watch.path, { ignoreInitial: true })
+        .watch(watch.path, { awaitWriteFinish: true, ignoreInitial: true })
         .on("add", (path) => handleEvent({ ...watch, path }))
         .on("change", (path) => handleEvent({ ...watch, path }))
         .on("ready", () => log.info(`Watching ${watch.path} ...`));
