@@ -150,12 +150,12 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       properties: ["multiSelections", "openFile"],
     });
     for (const filePath of filePaths) {
-      handleWatchEvent({ path: filePath, opensNewTab: false });
+      receive({ path: filePath, opensNewTab: false, checksFileID: false });
     }
   };
 
-  const handleWatchEvent = async (watch: WatchV2) => {
-    const ext = extname(watch.path);
+  const receive = async (event: WatchV2 & { checksFileID: boolean }) => {
+    const ext = extname(event.path);
     switch (ext) {
       case ".gif":
       case ".jpeg":
@@ -172,19 +172,19 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       }
     }
 
-    const { mtimeMs, size } = await stat(watch.path);
+    const { mtimeMs, size } = await stat(event.path);
     if (!size) {
       return;
     }
 
-    const file = await readFile(watch.path);
+    const file = await readFile(event.path);
     const fileID = [
       ...new Uint8Array(await crypto.subtle.digest("SHA-256", file)),
     ]
       .map((uint8) => uint8.toString(16).padStart(2, "0"))
       .join("");
     log.info("File ID", fileID);
-    if (uploadedStore.get(fileID)) {
+    if (event.checksFileID && uploadedStore.get(fileID)) {
       return;
     }
 
@@ -197,15 +197,15 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       const firstUploadResponse = await upload({
         loadedDataList,
         mtimeMs,
-        path: watch.path,
+        path: event.path,
       });
 
       uploadedList = [
-        { ...firstUploadResponse, title: basename(watch.path) },
+        { ...firstUploadResponse, title: basename(event.path) },
         ...uploadedList,
       ].slice(0, 10);
       setTrayMenu();
-      if (watch.opensNewTab) {
+      if (event.opensNewTab) {
         shell.openExternal(firstUploadResponse.permalink_url);
       }
 
@@ -215,7 +215,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       log.error(exception);
       new Notification({
         title: "Failed to upload to Gyazo. ",
-        body: `${watch.path}\nPlease check the log. `,
+        body: `${event.path}\nPlease check the log. `,
       }).show();
     }
   };
@@ -378,10 +378,12 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
   if (gyazoAccessToken) {
     for (const watch of watchlist) {
+      const handle = (path: string) =>
+        receive({ ...watch, path, checksFileID: true });
       chokidar
         .watch(watch.path, { awaitWriteFinish: true, ignoreInitial: true })
-        .on("add", (path) => handleWatchEvent({ ...watch, path }))
-        .on("change", (path) => handleWatchEvent({ ...watch, path }))
+        .on("add", handle)
+        .on("change", handle)
         .on("ready", () => log.info(`Watching ${watch.path} ...`));
     }
   } else {
