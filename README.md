@@ -27,7 +27,12 @@ Download the app from [releases page](https://github.com/hata6502/gyazemon/relea
 ## Usage
 
 Create Gyazo API access token.
-[Create new application](https://gyazo.com/oauth/applications/new)
+
+- Personal: https://gyazo.com/oauth/applications/new
+- Team: https://your-team-name.gyazo.com/oauth/applications/new
+
+[![Image from Gyazo](https://i.gyazo.com/31959fdd180e909632ab55789a6bdea0.png)](https://gyazo.com/31959fdd180e909632ab55789a6bdea0)
+[![Image from Gyazo](https://i.gyazo.com/d6b0d53c9d7662cb072f2b0427567229.png)](https://gyazo.com/d6b0d53c9d7662cb072f2b0427567229)
 
 Launch the app and set it up.
 [![Image from Gyazo](https://i.gyazo.com/31d3d227dff4bbb90d01b1de5e10b8b8.png)](https://gyazo.com/31d3d227dff4bbb90d01b1de5e10b8b8)
