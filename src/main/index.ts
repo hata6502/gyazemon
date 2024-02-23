@@ -37,10 +37,19 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   setUpdateNotification();
 
   const uploadedStore = new Store({ name: "uploaded" });
+
   const configStore = new Store();
+  const watchlist = toWatchlistV2(
+    ((await configStore.get("watchlist")) ?? []) as Watch[]
+  );
+  const rawGyazoAccessToken = await configStore.get("gyazoAccessToken");
+  const gyazoAccessToken =
+    typeof rawGyazoAccessToken === "string" && rawGyazoAccessToken;
+
   ipcMain.handle("getFromConfigStore", (_event, key: string) =>
     configStore.get(key)
   );
+
   ipcMain.handle("setToConfigStore", (_event, key: string, value?: unknown) =>
     configStore.set(key, value)
   );
@@ -69,8 +78,36 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   );
   tray.setToolTip("gyazemon");
 
+  const uploadQueue = new PQueue({ concurrency: 1 });
+  let uploadedList: { title: string; permalink_url: string }[] = [];
+  const setTrayMenu = () => {
+    const queueLength = uploadQueue.pending + uploadQueue.size;
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        {
+          label: "Settings",
+          click: openSettings,
+        },
+        {
+          label: "About",
+          click: openAbout,
+        },
+        { role: "quit" },
+        { type: "separator" },
+        ...(gyazoAccessToken ? [{ label: "Upload", click: uploadOnce }] : []),
+        ...(queueLength
+          ? [{ label: `Uploading ${queueLength} captures...` }]
+          : []),
+        ...uploadedList.map(({ title, permalink_url }) => ({
+          label: title,
+          click: () => shell.openExternal(permalink_url),
+        })),
+      ])
+    );
+  };
+
   let settingsWindow: BrowserWindow | undefined;
-  const openSettingsWindow = async () => {
+  const openSettings = async () => {
     if (settingsWindow) {
       settingsWindow.show();
       return;
@@ -93,280 +130,261 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   };
 
   let aboutWindow: BrowserWindow | undefined;
-  const uploadQueue = new PQueue({ concurrency: 1 });
-  let uploadedList: { title: string; permalink_url: string }[] = [];
-  const setTrayMenu = () => {
-    const queueLength = uploadQueue.pending + uploadQueue.size;
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        {
-          label: "Settings",
-          click: openSettingsWindow,
-        },
-        {
-          label: "About",
-          click: () => {
-            if (aboutWindow) {
-              aboutWindow.show();
-              return;
+  const openAbout = () => {
+    if (aboutWindow) {
+      aboutWindow.show();
+      return;
+    }
+
+    aboutWindow = openAboutWindow({
+      icon_path: resolve(__dirname, "../../../resources/icon.png"),
+      package_json_dir: resolve(__dirname, "../../.."),
+    });
+    aboutWindow.on("closed", () => {
+      aboutWindow = undefined;
+    });
+  };
+
+  const uploadOnce = async () => {
+    const { filePaths } = await dialog.showOpenDialog({
+      properties: ["multiSelections", "openFile"],
+    });
+    for (const filePath of filePaths) {
+      handleWatchEvent({ path: filePath, opensNewTab: false });
+    }
+  };
+
+  const handleWatchEvent = async (watch: WatchV2) => {
+    const ext = extname(watch.path);
+    switch (ext) {
+      case ".gif":
+      case ".jpeg":
+      case ".jpg":
+      case ".png":
+      case ".webp":
+
+      case ".pdf": {
+        break;
+      }
+
+      default: {
+        return;
+      }
+    }
+
+    const { mtimeMs, size } = await stat(watch.path);
+    if (!size) {
+      return;
+    }
+
+    const file = await readFile(watch.path);
+    const fileID = [
+      ...new Uint8Array(await crypto.subtle.digest("SHA-256", file)),
+    ]
+      .map((uint8) => uint8.toString(16).padStart(2, "0"))
+      .join("");
+    log.info("File ID", fileID);
+    if (uploadedStore.get(fileID)) {
+      return;
+    }
+
+    try {
+      const loadedDataList = await load({ ext, file });
+      if (!loadedDataList.length) {
+        return;
+      }
+
+      const firstUploadResponse = await upload({
+        loadedDataList,
+        mtimeMs,
+        path: watch.path,
+      });
+
+      uploadedList = [
+        { ...firstUploadResponse, title: basename(watch.path) },
+        ...uploadedList,
+      ].slice(0, 10);
+      setTrayMenu();
+      if (watch.opensNewTab) {
+        shell.openExternal(firstUploadResponse.permalink_url);
+      }
+
+      // Store minimal data
+      uploadedStore.set(fileID, true);
+    } catch (exception) {
+      log.error(exception);
+      new Notification({
+        title: "Failed to upload to Gyazo. ",
+        body: `${watch.path}\nPlease check the log. `,
+      }).show();
+    }
+  };
+
+  const load = async ({
+    ext,
+    file,
+  }: {
+    ext: ".gif" | ".jpeg" | ".jpg" | ".png" | ".webp" | ".pdf";
+    file: Buffer;
+  }) => {
+    switch (ext) {
+      case ".gif":
+      case ".jpeg":
+      case ".jpg":
+      case ".png":
+      case ".webp": {
+        return [file];
+      }
+
+      case ".pdf": {
+        const browserWindow = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            offscreen: true,
+            preload: resolve(__dirname, "../../preload/index.js"),
+          },
+        });
+
+        const pageImages = await new Promise<Buffer[]>(
+          async (resolvePromise) => {
+            const pageImages: Buffer[] = [];
+            ipcMain.handleOnce("getPDF", (): ArrayBuffer => file);
+            ipcMain.handle("setPageImage", (_event, pageImage: ArrayBuffer) => {
+              pageImages.push(Buffer.from(pageImage));
+              log.info(`Rendered page ${pageImages.length}. `);
+            });
+            ipcMain.handleOnce("finishRenderPDF", () => {
+              ipcMain.removeHandler("setPageImage");
+              resolvePromise(pageImages);
+            });
+
+            await browserWindow.loadFile(
+              resolve(__dirname, "../../../resources/pdf.html")
+            );
+          }
+        );
+        browserWindow.close();
+
+        return pageImages;
+      }
+
+      default: {
+        throw new Error(`Unknown ext: ${ext satisfies never}`);
+      }
+    }
+  };
+
+  const upload = async ({
+    loadedDataList,
+    mtimeMs,
+    path,
+  }: {
+    loadedDataList: Buffer[];
+    mtimeMs: number;
+    path: string;
+  }) => {
+    if (!gyazoAccessToken) {
+      throw new Error("Gyazo access token is not set. ");
+    }
+
+    const uploadResponses = await Promise.all(
+      [...loadedDataList.entries()].map(
+        async ([loadedDataIndex, loadedData]) => {
+          const oneBasedLoadedDataIndex = loadedDataIndex + 1;
+          log.info(`Uploading ${oneBasedLoadedDataIndex} of ${path} ...`);
+
+          const formData = new FormData();
+          const title =
+            loadedDataList.length < 2
+              ? basename(path)
+              : `${oneBasedLoadedDataIndex}/${loadedDataList.length} ${basename(
+                  path
+                )}`;
+
+          const description = `${title}
+`;
+
+          // Use http scheme instead of unsupported file scheme.
+          const url = new URL("http://localhost/");
+          url.protocol = "http:";
+          url.username = userInfo().username;
+          url.hostname = hostname();
+          url.pathname = pathToFileURL(path).pathname;
+
+          formData.append("access_token", gyazoAccessToken);
+          formData.append("imagedata", new Blob([loadedData]), "dummy.png");
+          formData.append("referer_url", String(url));
+          formData.append("app", "gyazemon");
+          formData.append("title", title);
+          formData.append("desc", description);
+          formData.append(
+            "created_at",
+            String(mtimeMs / 1000 - loadedDataIndex)
+          );
+
+          let uploadResponse;
+          for (
+            let uploadRetryCount = 0;
+            uploadRetryCount < 3;
+            uploadRetryCount++
+          ) {
+            try {
+              uploadResponse = await uploadQueue.add(() =>
+                fetch("https://upload.gyazo.com/api/upload", {
+                  method: "POST",
+                  body: formData,
+                  signal: AbortSignal.timeout(3 * 60 * 1000),
+                })
+              );
+            } catch {
+              continue;
             }
 
-            aboutWindow = openAboutWindow({
-              icon_path: resolve(__dirname, "../../../resources/icon.png"),
-              package_json_dir: resolve(__dirname, "../../.."),
-            });
-            aboutWindow.on("closed", () => {
-              aboutWindow = undefined;
-            });
-          },
-        },
-        { role: "quit" },
-        { type: "separator" },
-        ...(queueLength
-          ? [{ label: `Uploading ${queueLength} captures...` }]
-          : []),
-        ...uploadedList.map(({ title, permalink_url }) => ({
-          label: title,
-          click: () => shell.openExternal(permalink_url),
-        })),
-      ])
+            if (uploadResponse.ok) {
+              break;
+            }
+            // Rate Limits https://gyazo.com/api/docs/errors
+            if (uploadResponse.status === 429) {
+              uploadQueue.clear();
+              setTrayMenu();
+
+              new Notification({
+                title: "Canceled the upload processes to Gyazo. ",
+                body: "Gyazo API rate limit exceeded. Please try again later. ",
+              }).show();
+              break;
+            }
+          }
+          if (!uploadResponse || !uploadResponse.ok) {
+            throw new Error(
+              `Upload error. ${uploadResponse?.status ?? ""} ${
+                uploadResponse?.statusText ?? ""
+              }`
+            );
+          }
+
+          log.info(`Uploaded ${oneBasedLoadedDataIndex} of ${path}`);
+          return uploadResponse;
+        }
+      )
     );
+
+    return uploadResponses[0].json();
   };
+
   setTrayMenu();
   uploadQueue.on("add", setTrayMenu);
   uploadQueue.on("next", setTrayMenu);
 
-  const watchlist = toWatchlistV2(
-    ((await configStore.get("watchlist")) ?? []) as Watch[]
-  );
-
-  const gyazoAccessToken = await configStore.get("gyazoAccessToken");
-  if (typeof gyazoAccessToken === "string" && gyazoAccessToken !== "") {
-    const load = async ({
-      ext,
-      file,
-    }: {
-      ext: ".gif" | ".jpeg" | ".jpg" | ".png" | ".webp" | ".pdf";
-      file: Buffer;
-    }) => {
-      switch (ext) {
-        case ".gif":
-        case ".jpeg":
-        case ".jpg":
-        case ".png":
-        case ".webp": {
-          return [file];
-        }
-
-        case ".pdf": {
-          const browserWindow = new BrowserWindow({
-            show: false,
-            webPreferences: {
-              offscreen: true,
-              preload: resolve(__dirname, "../../preload/index.js"),
-            },
-          });
-
-          const pageImages = await new Promise<Buffer[]>(
-            async (resolvePromise) => {
-              const pageImages: Buffer[] = [];
-              ipcMain.handleOnce("getPDF", (): ArrayBuffer => file);
-              ipcMain.handle(
-                "setPageImage",
-                (_event, pageImage: ArrayBuffer) => {
-                  pageImages.push(Buffer.from(pageImage));
-                  log.info(`Rendered page ${pageImages.length}. `);
-                }
-              );
-              ipcMain.handleOnce("finishRenderPDF", () => {
-                ipcMain.removeHandler("setPageImage");
-                resolvePromise(pageImages);
-              });
-
-              await browserWindow.loadFile(
-                resolve(__dirname, "../../../resources/pdf.html")
-              );
-            }
-          );
-          browserWindow.close();
-
-          return pageImages;
-        }
-
-        default: {
-          throw new Error(`Unknown ext: ${ext satisfies never}`);
-        }
-      }
-    };
-
-    const upload = async ({
-      loadedDataList,
-      mtimeMs,
-      path,
-    }: {
-      loadedDataList: Buffer[];
-      mtimeMs: number;
-      path: string;
-    }) => {
-      const uploadResponses = await Promise.all(
-        [...loadedDataList.entries()].map(
-          async ([loadedDataIndex, loadedData]) => {
-            const oneBasedLoadedDataIndex = loadedDataIndex + 1;
-            log.info(`Uploading ${oneBasedLoadedDataIndex} of ${path} ...`);
-
-            const formData = new FormData();
-            const title =
-              loadedDataList.length < 2
-                ? basename(path)
-                : `${oneBasedLoadedDataIndex}/${
-                    loadedDataList.length
-                  } ${basename(path)}`;
-
-            const description = `${title}
-`;
-
-            // Use http scheme instead of unsupported file scheme.
-            const url = new URL("http://localhost/");
-            url.protocol = "http:";
-            url.username = userInfo().username;
-            url.hostname = hostname();
-            url.pathname = pathToFileURL(path).pathname;
-
-            formData.append("access_token", gyazoAccessToken);
-            formData.append("imagedata", new Blob([loadedData]), "dummy.png");
-            formData.append("referer_url", String(url));
-            formData.append("app", "gyazemon");
-            formData.append("title", title);
-            formData.append("desc", description);
-            formData.append(
-              "created_at",
-              String(mtimeMs / 1000 - loadedDataIndex)
-            );
-
-            let uploadResponse;
-            for (
-              let uploadRetryCount = 0;
-              uploadRetryCount < 3;
-              uploadRetryCount++
-            ) {
-              try {
-                uploadResponse = await uploadQueue.add(() =>
-                  fetch("https://upload.gyazo.com/api/upload", {
-                    method: "POST",
-                    body: formData,
-                    signal: AbortSignal.timeout(3 * 60 * 1000),
-                  })
-                );
-              } catch {
-                continue;
-              }
-
-              if (uploadResponse.ok) {
-                break;
-              }
-              // Rate Limits https://gyazo.com/api/docs/errors
-              if (uploadResponse.status === 429) {
-                uploadQueue.clear();
-                setTrayMenu();
-
-                new Notification({
-                  title: "Canceled the upload processes to Gyazo. ",
-                  body: "Gyazo API rate limit exceeded. Please try again later. ",
-                }).show();
-                break;
-              }
-            }
-            if (!uploadResponse || !uploadResponse.ok) {
-              throw new Error(
-                `Upload error. ${uploadResponse?.status ?? ""} ${
-                  uploadResponse?.statusText ?? ""
-                }`
-              );
-            }
-
-            log.info(`Uploaded ${oneBasedLoadedDataIndex} of ${path}`);
-            return uploadResponse;
-          }
-        )
-      );
-
-      return uploadResponses[0].json();
-    };
-
-    const handleEvent = async (watch: WatchV2) => {
-      const ext = extname(watch.path);
-      switch (ext) {
-        case ".gif":
-        case ".jpeg":
-        case ".jpg":
-        case ".png":
-        case ".webp":
-
-        case ".pdf": {
-          break;
-        }
-
-        default: {
-          return;
-        }
-      }
-
-      const { mtimeMs, size } = await stat(watch.path);
-      if (!size) {
-        return;
-      }
-
-      const file = await readFile(watch.path);
-      const fileID = [
-        ...new Uint8Array(await crypto.subtle.digest("SHA-256", file)),
-      ]
-        .map((uint8) => uint8.toString(16).padStart(2, "0"))
-        .join("");
-      log.info("File ID", fileID);
-      if (uploadedStore.get(fileID)) {
-        return;
-      }
-
-      try {
-        const loadedDataList = await load({ ext, file });
-        if (!loadedDataList.length) {
-          return;
-        }
-
-        const firstUploadResponse = await upload({
-          loadedDataList,
-          mtimeMs,
-          path: watch.path,
-        });
-
-        uploadedList = [
-          { ...firstUploadResponse, title: basename(watch.path) },
-          ...uploadedList,
-        ].slice(0, 10);
-        setTrayMenu();
-        if (watch.opensNewTab) {
-          shell.openExternal(firstUploadResponse.permalink_url);
-        }
-
-        // Store minimal data
-        uploadedStore.set(fileID, true);
-      } catch (exception) {
-        log.error(exception);
-        new Notification({
-          title: "Failed to upload to Gyazo. ",
-          body: `${watch.path}\nPlease check the log. `,
-        }).show();
-      }
-    };
-
+  if (gyazoAccessToken) {
     for (const watch of watchlist) {
       chokidar
         .watch(watch.path, { awaitWriteFinish: true, ignoreInitial: true })
-        .on("add", (path) => handleEvent({ ...watch, path }))
-        .on("change", (path) => handleEvent({ ...watch, path }))
+        .on("add", (path) => handleWatchEvent({ ...watch, path }))
+        .on("change", (path) => handleWatchEvent({ ...watch, path }))
         .on("ready", () => log.info(`Watching ${watch.path} ...`));
     }
   } else {
-    await openSettingsWindow();
+    await openSettings();
   }
 })();
