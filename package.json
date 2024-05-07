@@ -73,7 +73,7 @@
     "electron-store": "^8.1.0",
     "electron-update-notifier": "^1.7.0",
     "p-queue": "^6.6.2",
-    "pdfjs-dist": "^2.16.105"
+    "pdfjs-dist": "^4.2.67"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.2.0",
