@@ -189,6 +189,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
     }
 
     try {
+      log.debug("load");
       const loadedDataList = await load({ ext, file });
       if (!loadedDataList.length) {
         return;
@@ -237,18 +238,22 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       }
 
       case ".pdf": {
+        log.debug("Start loading PDF");
         const browserWindow = new BrowserWindow({
           show: false,
           webPreferences: {
-            offscreen: true,
             preload: resolve(__dirname, "../../preload/index.js"),
           },
         });
 
+        log.debug("Start rendering PDF");
         const pageImages = await new Promise<Buffer[]>(
           async (resolvePromise) => {
             const pageImages: Buffer[] = [];
-            ipcMain.handleOnce("getPDF", (): ArrayBuffer => file);
+            ipcMain.handleOnce("getPDF", (): ArrayBuffer => {
+              log.debug("getPDF");
+              return file;
+            });
             ipcMain.handle("setPageImage", (_event, pageImage: ArrayBuffer) => {
               pageImages.push(Buffer.from(pageImage));
               log.info(`Rendered page ${pageImages.length}. `);
@@ -258,6 +263,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
               resolvePromise(pageImages);
             });
 
+            log.debug("Load pdf.html");
             await browserWindow.loadFile(
               resolve(__dirname, "../../../resources/pdf.html")
             );
