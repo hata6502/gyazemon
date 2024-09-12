@@ -327,6 +327,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
             "created_at",
             String(mtimeMs / 1000 - loadedDataIndex)
           );
+          formData.append("scale", "2");
 
           let uploadResponse;
           for (
