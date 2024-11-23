@@ -33,6 +33,7 @@ Create Gyazo API access token.
 
 [![Image from Gyazo](https://i.gyazo.com/31959fdd180e909632ab55789a6bdea0.png)](https://gyazo.com/31959fdd180e909632ab55789a6bdea0)
 [![Image from Gyazo](https://i.gyazo.com/d6b0d53c9d7662cb072f2b0427567229.png)](https://gyazo.com/d6b0d53c9d7662cb072f2b0427567229)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhata6502%2Fgyazemon.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhata6502%2Fgyazemon?ref=badge_shield)
 
 Launch the app and set it up.
 [![Image from Gyazo](https://i.gyazo.com/31d3d227dff4bbb90d01b1de5e10b8b8.png)](https://gyazo.com/31d3d227dff4bbb90d01b1de5e10b8b8)
@@ -45,3 +46,7 @@ When file is placed in directory, it will be uploaded to Gyazo.
 The following creations are included in this product:
 
 - [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji/blob/main/LICENSE)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhata6502%2Fgyazemon.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhata6502%2Fgyazemon?ref=badge_large)
