@@ -99,7 +99,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
         },
         { role: "quit" },
         { type: "separator" },
-        ...(gyazoAccessToken ? [{ label: "Upload", click: uploadOnce }] : []),
         ...(queueLength
           ? [
               {
@@ -164,15 +163,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
     aboutWindow.on("closed", () => {
       aboutWindow = undefined;
     });
-  };
-
-  const uploadOnce = async () => {
-    const { filePaths } = await dialog.showOpenDialog({
-      properties: ["openFile", "multiSelections"],
-    });
-    for (const filePath of filePaths) {
-      receive({ path: filePath, opensNewTab: false, checksFileID: false });
-    }
   };
 
   const receive = async (event: WatchV2 & { checksFileID: boolean }) => {
