@@ -27,7 +27,6 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
     const autoLaunch = new AutoLaunch({ name: "gyazemon" });
     await autoLaunch.enable();
   }
-
   await app.whenReady();
   if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -36,8 +35,9 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   app.on("window-all-closed", () => {});
   setUpdateNotification();
 
-  const uploadedStore = new Store({ name: "uploaded" });
+  const eventTarget = new EventTarget();
 
+  const uploadedStore = new Store({ name: "uploaded" });
   const configStore = new Store();
   const watchlist = toWatchlistV2(
     ((await configStore.get("watchlist")) ?? []) as Watch[]
@@ -46,10 +46,15 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   const gyazoAccessToken =
     typeof rawGyazoAccessToken === "string" && rawGyazoAccessToken;
 
+  let onLine = false;
+  ipcMain.handle("updateOnlineStatus", (_event, onLineEvent: boolean) => {
+    onLine = onLineEvent;
+    eventTarget.dispatchEvent(new Event(onLine ? "online" : "offline"));
+  });
+
   ipcMain.handle("getFromConfigStore", (_event, key: string) =>
     configStore.get(key)
   );
-
   ipcMain.handle("setToConfigStore", (_event, key: string, value?: unknown) =>
     configStore.set(key, value)
   );
@@ -96,7 +101,13 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
         { type: "separator" },
         ...(gyazoAccessToken ? [{ label: "Upload", click: uploadOnce }] : []),
         ...(queueLength
-          ? [{ label: `Uploading ${queueLength} captures...` }]
+          ? [
+              {
+                label: `${
+                  onLine ? "Uploading" : "Waiting for internet connection for"
+                } ${queueLength} captures...`,
+              },
+            ]
           : []),
         ...uploadedList.map(({ title, permalink_url }) => ({
           label: title,
@@ -105,6 +116,16 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
       ])
     );
   };
+
+  const onlineStatusWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      preload: resolve(__dirname, "../../preload/index.js"),
+    },
+  });
+  await onlineStatusWindow.loadFile(
+    resolve(__dirname, "../../../resources/online-status.html")
+  );
 
   let settingsWindow: BrowserWindow | undefined;
   const openSettings = async () => {
@@ -147,7 +168,7 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
   const uploadOnce = async () => {
     const { filePaths } = await dialog.showOpenDialog({
-      properties: ["multiSelections", "openFile"],
+      properties: ["openFile", "multiSelections"],
     });
     for (const filePath of filePaths) {
       receive({ path: filePath, opensNewTab: false, checksFileID: false });
@@ -336,13 +357,21 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
             uploadRetryCount++
           ) {
             try {
-              uploadResponse = await uploadQueue.add(() =>
-                fetch("https://upload.gyazo.com/api/upload", {
+              uploadResponse = await uploadQueue.add(async () => {
+                if (!onLine) {
+                  await new Promise((resolve) => {
+                    eventTarget.addEventListener("online", resolve, {
+                      once: true,
+                    });
+                  });
+                }
+
+                return fetch("https://upload.gyazo.com/api/upload", {
                   method: "POST",
                   body: formData,
                   signal: AbortSignal.timeout(3 * 60 * 1000),
-                })
-              );
+                });
+              });
             } catch {
               continue;
             }
@@ -382,6 +411,8 @@ import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
   setTrayMenu();
   uploadQueue.on("add", setTrayMenu);
   uploadQueue.on("next", setTrayMenu);
+  eventTarget.addEventListener("online", setTrayMenu);
+  eventTarget.addEventListener("offline", setTrayMenu);
 
   if (gyazoAccessToken) {
     for (const watch of watchlist) {

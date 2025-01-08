@@ -1,7 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
-  send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, args),
+  updateOnlineStatus: (onLine: boolean): Promise<void> =>
+    ipcRenderer.invoke("updateOnlineStatus", onLine),
+
   selectDirectory: (): Promise<string[]> =>
     ipcRenderer.invoke("selectDirectory"),
   restart: (): Promise<void> => ipcRenderer.invoke("restart"),

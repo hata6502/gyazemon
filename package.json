@@ -15,6 +15,7 @@
     "build:main": "tsc --project src/main",
     "build:preload": "tsc --project src/preload",
     "build:renderer:tailwindcss": "tailwindcss -i src/renderer/tailwind.css -o dist/renderer/tailwind.css --minify",
+    "build:renderer:online-status": "esbuild src/renderer/online-status.ts --bundle --format=esm --minify --outfile=dist/renderer/online-status.js",
     "build:renderer:pdf": "esbuild src/renderer/pdf.ts --bundle --format=esm --minify --outfile=dist/renderer/pdf.js",
     "build:renderer:settings": "esbuild src/renderer/settings.tsx --bundle --format=esm --minify --outfile=dist/renderer/settings.js",
     "test": "run-p test:**",
