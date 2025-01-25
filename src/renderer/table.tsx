@@ -1,4 +1,4 @@
-import { HTMLAttributes } from "react";
+import { FunctionComponent, HTMLAttributes } from "react";
 
 interface TableProps extends HTMLAttributes<HTMLTableElement> {}
 interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {}
@@ -7,29 +7,29 @@ interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {}
 interface TableCellProps extends HTMLAttributes<HTMLTableCellElement> {}
 interface TableHeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {}
 
-export const Table = ({ className = "", ...props }: TableProps) => {
+export const Table: FunctionComponent<TableProps> = ({ className = "", ...props }) => {
   return (
     <table className={`border-collapse table-auto w-full ${className}`} {...props} />
   );
 }
 
-const Header = ({ className = "", ...props }: TableHeaderProps) => {
+const Header: FunctionComponent<TableHeaderProps> = ({ className = "", ...props }) => {
   return <thead className={className} {...props} />;
 };
 
-const Body = ({ className = "", ...props }: TableBodyProps) => {
+const Body: FunctionComponent<TableBodyProps> = ({ className = "", ...props }) => {
   return <tbody className={className} {...props} />;
 };
 
-const Row = ({ className = "", ...props }: TableRowProps) => {
+const Row: FunctionComponent<TableRowProps> = ({ className = "", ...props }) => {
   return <tr className={className} {...props} />;
 };
 
-const Cell = ({ className = "", ...props }: TableCellProps) => {
+const Cell: FunctionComponent<TableCellProps> = ({ className = "", ...props }) => {
   return <td className={`border-b border-slate-100 p-2 ${className}`} {...props} />;
 };
 
-const HeaderCell = ({ className = "", ...props }: TableHeaderCellProps) => {
+const HeaderCell: FunctionComponent<TableHeaderCellProps> = ({ className = "", ...props }) => {
   return <th className={`border-b font-medium p-2 text-left ${className}`} {...props} />;
 }
 
