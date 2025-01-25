@@ -4,7 +4,7 @@ interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
-export function Heading({ level = 1, className = "", ...props }: HeadingProps) {
+export const Heading = ({ level = 1, className = "", ...props }: HeadingProps) => {
   const baseClasses = "font-medium text-slate-700";
   const sizeClasses = {
     1: "text-3xl",

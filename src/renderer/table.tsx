@@ -7,29 +7,29 @@ interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {}
 interface TableCellProps extends HTMLAttributes<HTMLTableCellElement> {}
 interface TableHeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {}
 
-export function Table({ className = "", ...props }: TableProps) {
+export const Table = ({ className = "", ...props }: TableProps) => {
   return (
     <table className={`border-collapse table-auto w-full ${className}`} {...props} />
   );
 }
 
-function Header({ className = "", ...props }: TableHeaderProps) {
+const Header = ({ className = "", ...props }: TableHeaderProps) => {
   return <thead className={className} {...props} />;
-}
+};
 
-function Body({ className = "", ...props }: TableBodyProps) {
+const Body = ({ className = "", ...props }: TableBodyProps) => {
   return <tbody className={className} {...props} />;
-}
+};
 
-function Row({ className = "", ...props }: TableRowProps) {
+const Row = ({ className = "", ...props }: TableRowProps) => {
   return <tr className={className} {...props} />;
-}
+};
 
-function Cell({ className = "", ...props }: TableCellProps) {
+const Cell = ({ className = "", ...props }: TableCellProps) => {
   return <td className={`border-b border-slate-100 p-2 ${className}`} {...props} />;
-}
+};
 
-function HeaderCell({ className = "", ...props }: TableHeaderCellProps) {
+const HeaderCell = ({ className = "", ...props }: TableHeaderCellProps) => {
   return <th className={`border-b font-medium p-2 text-left ${className}`} {...props} />;
 }
 

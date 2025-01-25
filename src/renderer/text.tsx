@@ -4,7 +4,7 @@ interface TextProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "body" | "label";
 }
 
-export function Text({ variant = "body", className = "", ...props }: TextProps) {
+export const Text = ({ variant = "body", className = "", ...props }: TextProps) => {
   const variantClasses = {
     body: "text-slate-700 text-sm",
     label: "block font-medium text-slate-700 text-sm"

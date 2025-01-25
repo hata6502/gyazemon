@@ -4,7 +4,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "icon";
 }
 
-export function Button({ variant = "secondary", className = "", ...props }: ButtonProps) {
+export const Button = ({ variant = "secondary", className = "", ...props }: ButtonProps) => {
   const baseClasses = "px-4 py-2 rounded font-medium focus:outline-none focus:ring-2 transition-colors";
   const variantClasses = {
     primary: "bg-violet-500 text-white hover:bg-violet-600 focus:ring-violet-300 active:bg-violet-700",
