@@ -2,6 +2,7 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { FunctionComponent, StrictMode, Suspense, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
+import { Button, Input, Table, Text, Heading } from ".";
 
 let initialGyazoAccessToken: string | undefined;
 let initialWatchlist: WatchV2[] | undefined;
@@ -31,8 +32,8 @@ const App: FunctionComponent = () => {
   const [watchlist, setWatchlist] = useState(initialWatchlist);
 
   return (
-    <div className="container mx-auto px-4 py-4 text-slate-700 text-sm">
-      <h2 className="mb-4 font-medium text-2xl">Settings</h2>
+    <div className="container mx-auto px-4 py-4">
+      <Heading level={2} className="mb-4">Settings</Heading>
 
       <form
         onSubmit={async (event) => {
@@ -45,39 +46,40 @@ const App: FunctionComponent = () => {
           await electronAPI.restart();
         }}
       >
-        <label className="block mb-4">
-          <span className="block font-medium">Gyazo API access token</span>
-          <input
+        <div className="mb-4">
+          <Text variant="label">Gyazo API access token</Text>
+          <Input
             type="password"
-            className="mt-1 px-3 py-2 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-violet-500 block w-full rounded-md sm:text-sm focus:ring-1"
+            className="mt-1"
             placeholder="XXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXXX"
             value={gyazoAccessToken}
             onChange={(event) => {
               setGyazoAccessToken(event.target.value);
             }}
           />
-        </label>
+        </div>
 
         <div className="mb-4">
-          <div className="font-medium">Watchlist</div>
-          Directories to be watched and uploaded to Gyazo. <br />
-          Only upload files that were placed later.
-          <table className="border-collapse mb-2 table-auto w-full">
-            <thead>
-              <tr>
-                <th className="border-b font-medium p-2 text-left">Path</th>
-                <th className="border-b font-medium p-2"></th>
-              </tr>
-            </thead>
-
-            <tbody>
+          <Text variant="label">Watchlist</Text>
+          <Text variant="body">
+            Directories to be watched and uploaded to Gyazo.
+            Only upload files that were placed later.
+          </Text>
+          
+          <Table className="mb-2">
+            <Table.Header>
+              <Table.Row>
+                <Table.HeaderCell>Path</Table.HeaderCell>
+                <Table.HeaderCell></Table.HeaderCell>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {watchlist.map(({ path }, index) => (
-                <tr key={index}>
-                  <td className="border-b border-slate-100 p-2">{path}</td>
-                  <td className="border-b border-slate-100 p-2 text-center">
-                    <button
-                      type="button"
-                      className="px-2 py-2 rounded-full bg-white hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-0 active:bg-gray-200"
+                <Table.Row key={index}>
+                  <Table.Cell>{path}</Table.Cell>
+                  <Table.Cell className="text-center">
+                    <Button
+                      variant="icon"
                       onClick={() => {
                         setWatchlist((prevWatchlist) => [
                           ...prevWatchlist.slice(0, index),
@@ -86,34 +88,31 @@ const App: FunctionComponent = () => {
                       }}
                     >
                       <TrashIcon className="w-4" />
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </Table.Cell>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
-          <button
-            type="button"
-            className="px-2 py-2 rounded-full bg-violet-500 text-white hover:bg-violet-600 focus:bg-violet-600 focus:outline-none focus:ring-0 active:bg-violet-700"
+            </Table.Body>
+          </Table>
+          
+          <Button
+            variant="icon"
             onClick={async () => {
               const paths = await electronAPI.selectDirectory();
               setWatchlist((prevWatchlist) => [
                 ...prevWatchlist,
-                ...paths.map((path) => ({ path })),
+                ...paths.map((path: string) => ({ path })),
               ]);
             }}
           >
             <PlusIcon className="w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-violet-500 hover:bg-violet-600 focus:outline-none focus:ring focus:ring-violet-300 active:bg-violet-700 px-5 py-2 rounded font-medium text-white"
-          >
+          <Button type="submit" variant="primary">
             Save &amp; restart
-          </button>
+          </Button>
         </div>
       </form>
     </div>

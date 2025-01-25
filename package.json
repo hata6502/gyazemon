@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "auto-launch": "^5.0.5",
+    "catalyst-ui-kit": "file:../catalyst-ui-kit",
     "chokidar": "^3.5.3",
     "electron-about-window": "^1.15.2",
     "electron-log": "^4.4.8",
