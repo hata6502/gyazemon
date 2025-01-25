@@ -68,6 +68,7 @@
   "dependencies": {
     "auto-launch": "^5.0.5",
     "chokidar": "^3.5.3",
+    "clsx": "^2.1.1",
     "electron-about-window": "^1.15.2",
     "electron-log": "^4.4.8",
     "electron-squirrel-startup": "^1.0.0",

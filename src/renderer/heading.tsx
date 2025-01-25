@@ -1,11 +1,11 @@
-import { createElement, FunctionComponent, HTMLAttributes } from "react";
+import { FunctionComponent, HTMLAttributes } from "react";
+import clsx from "clsx";
 
 interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
-export const Heading: FunctionComponent<HeadingProps> = ({ level = 1, className = "", ...props }) => {
-  const baseClasses = "font-medium text-slate-700";
+export const Heading: FunctionComponent<HeadingProps> = ({ level = 1, className, ...props }) => {
   const sizeClasses = {
     1: "text-3xl",
     2: "text-2xl",
@@ -15,11 +15,16 @@ export const Heading: FunctionComponent<HeadingProps> = ({ level = 1, className 
     6: "text-sm"
   };
 
-  return createElement(
-    `h${level}`,
-    {
-      className: `${baseClasses} ${sizeClasses[level]} ${className}`,
-      ...props
-    }
+  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+
+  return (
+    <Tag
+      className={clsx(
+        "font-medium text-slate-700",
+        sizeClasses[level],
+        className
+      )}
+      {...props}
+    />
   );
 }
