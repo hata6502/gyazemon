@@ -66,33 +66,14 @@ const App: FunctionComponent = () => {
             <thead>
               <tr>
                 <th className="border-b font-medium p-2 text-left">Path</th>
-                <th className="border-b font-medium p-2">Open new tab</th>
                 <th className="border-b font-medium p-2"></th>
               </tr>
             </thead>
 
             <tbody>
-              {watchlist.map(({ path, opensNewTab }, index) => (
+              {watchlist.map(({ path }, index) => (
                 <tr key={index}>
                   <td className="border-b border-slate-100 p-2">{path}</td>
-
-                  <td className="border-b border-slate-100 p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={opensNewTab}
-                      onChange={(event) => {
-                        setWatchlist((prevWatchlist) => [
-                          ...prevWatchlist.slice(0, index),
-                          {
-                            ...prevWatchlist[index],
-                            opensNewTab: event.target.checked,
-                          },
-                          ...prevWatchlist.slice(index + 1),
-                        ]);
-                      }}
-                    />
-                  </td>
-
                   <td className="border-b border-slate-100 p-2 text-center">
                     <button
                       type="button"
@@ -118,7 +99,7 @@ const App: FunctionComponent = () => {
               const paths = await electronAPI.selectDirectory();
               setWatchlist((prevWatchlist) => [
                 ...prevWatchlist,
-                ...paths.map((path) => ({ path, opensNewTab: false })),
+                ...paths.map((path) => ({ path })),
               ]);
             }}
           >
