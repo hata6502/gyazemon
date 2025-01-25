@@ -1,6 +1,7 @@
 type WatchV1 = string;
 export interface WatchV2 {
   path: string;
+  opensNewTab?: never;
 }
 export type Watch = WatchV1 | WatchV2;
 
