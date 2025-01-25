@@ -13,9 +13,7 @@ export const Text: FunctionComponent<TextProps> = ({
   <div
     className={clsx(
       "text-slate-700 text-sm",
-      {
-        "block font-medium": variant === "label",
-      },
+      variant === "label" && "block font-medium",
       className
     )}
     {...props}
