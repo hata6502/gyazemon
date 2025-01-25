@@ -4,7 +4,14 @@ import { createRoot } from "react-dom/client";
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 import { Button } from "./button";
 import { Input } from "./input";
-import { Table } from "./table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from "./table";
 import { Text } from "./text";
 import { Heading } from "./heading";
 
@@ -37,7 +44,9 @@ const App: FunctionComponent = () => {
 
   return (
     <div className="container mx-auto px-4 py-4">
-      <Heading level={2} className="mb-4">Settings</Heading>
+      <Heading level={2} className="mb-4">
+        Settings
+      </Heading>
 
       <form
         onSubmit={async (event) => {
@@ -66,22 +75,22 @@ const App: FunctionComponent = () => {
         <div className="mb-4">
           <Text variant="label">Watchlist</Text>
           <Text variant="body">
-            Directories to be watched and uploaded to Gyazo.
-            Only upload files that were placed later.
+            Directories to be watched and uploaded to Gyazo. Only upload files
+            that were placed later.
           </Text>
-          
+
           <Table className="mb-2">
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Path</Table.HeaderCell>
-                <Table.HeaderCell></Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>Path</TableHeaderCell>
+                <TableHeaderCell></TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {watchlist.map(({ path }, index) => (
-                <Table.Row key={index}>
-                  <Table.Cell>{path}</Table.Cell>
-                  <Table.Cell className="text-center">
+                <TableRow key={index}>
+                  <TableCell>{path}</TableCell>
+                  <TableCell className="text-center">
                     <Button
                       variant="icon"
                       onClick={() => {
@@ -93,12 +102,12 @@ const App: FunctionComponent = () => {
                     >
                       <TrashIcon className="w-4" />
                     </Button>
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               ))}
-            </Table.Body>
+            </TableBody>
           </Table>
-          
+
           <Button
             variant="icon"
             onClick={async () => {
