@@ -175,7 +175,7 @@ import { getUploadOnceAvailable } from "./platform";
       properties: ["openFile", "multiSelections"],
     });
     for (const filePath of filePaths) {
-      receive({ path: filePath, opensNewTab: false, checksFileID: false });
+      receive({ path: filePath, checksFileID: false });
     }
   };
 
@@ -231,10 +231,6 @@ import { getUploadOnceAvailable } from "./platform";
         ...uploadedList,
       ].slice(0, 10);
       setTrayMenu();
-      if (event.opensNewTab) {
-        shell.openExternal(firstUploadResponse.permalink_url);
-      }
-
       // Store minimal data
       uploadedStore.set(fileID, true);
     } catch (exception) {
