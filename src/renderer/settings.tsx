@@ -2,7 +2,11 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { FunctionComponent, StrictMode, Suspense, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
-import { Button, Input, Table, Text, Heading } from ".";
+import { Button } from "./Button";
+import { Input } from "./Input";
+import { Table } from "./Table";
+import { Text } from "./Text";
+import { Heading } from "./Heading";
 
 let initialGyazoAccessToken: string | undefined;
 let initialWatchlist: WatchV2[] | undefined;
