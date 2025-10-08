@@ -1,5 +1,11 @@
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
-import { FunctionComponent, StrictMode, Suspense, useState } from "react";
+import {
+  ChangeEventHandler,
+  FunctionComponent,
+  StrictMode,
+  Suspense,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
 
@@ -65,8 +71,14 @@ const App: FunctionComponent = () => {
               Watchlist
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Directories to be watched and uploaded to Gyazo. <br />
-              Only upload files that were placed later.
+              This is the directory used for uploading to Gyazo. <br />
+              Any files placed in this directory after saving the settings will
+              be uploaded automatically.
+            </p>
+
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              You can also choose to copy the uploaded Gyazo URL to the
+              clipboard.
             </p>
           </div>
 
@@ -74,36 +86,64 @@ const App: FunctionComponent = () => {
             <thead className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               <tr className="border-b border-zinc-200 dark:border-white/10">
                 <th className="px-0 py-2">Path</th>
+                <th className="px-4 py-2 text-center">Clipboard</th>
                 <th className="w-12 px-0 py-2 text-right"></th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
-              {watchlist.map(({ path }, index) => (
-                <tr
-                  key={index}
-                  className="transition hover:bg-zinc-100/60 dark:hover:bg-white/5"
-                >
-                  <td className="max-w-[18rem] truncate py-3 pr-4 text-sm text-zinc-700 dark:text-zinc-200 sm:max-w-none">
-                    {path}
-                  </td>
-                  <td className="py-3 text-right">
-                    <button
-                      type="button"
-                      className="inline-flex size-9 items-center justify-center rounded-md text-zinc-500 transition hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
-                      onClick={() => {
-                        setWatchlist((prevWatchlist) => [
-                          ...prevWatchlist.slice(0, index),
-                          ...prevWatchlist.slice(index + 1),
-                        ]);
-                      }}
-                    >
-                      <TrashIcon className="size-4" />
-                      <span className="sr-only">Remove</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {watchlist.map((watch, index) => {
+                const handleClipboardCheckboxChange: ChangeEventHandler<
+                  HTMLInputElement
+                > = (event) => {
+                  setWatchlist((prev) => {
+                    const watchlist = [...prev];
+                    watchlist[index] = {
+                      ...watchlist[index],
+                      writesClipboard: event.target.checked,
+                    };
+                    return watchlist;
+                  });
+                };
+
+                const handleRemoveButtonClick = () => {
+                  setWatchlist((prev) => [
+                    ...prev.slice(0, index),
+                    ...prev.slice(index + 1),
+                  ]);
+                };
+
+                return (
+                  <tr
+                    key={index}
+                    className="transition hover:bg-zinc-100/60 dark:hover:bg-white/5"
+                  >
+                    <td className="max-w-[18rem] truncate py-3 pr-4 text-sm text-zinc-700 dark:text-zinc-200 sm:max-w-none">
+                      {watch.path}
+                    </td>
+
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={watch.writesClipboard ?? false}
+                        onChange={handleClipboardCheckboxChange}
+                        className="size-4 shrink-0 rounded border border-zinc-950/15 text-blue-600 accent-blue-600 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-white/20 dark:bg-white/5 dark:accent-blue-400"
+                      />
+                    </td>
+
+                    <td className="py-3 text-right">
+                      <button
+                        type="button"
+                        className="inline-flex size-9 items-center justify-center rounded-md text-zinc-500 transition hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
+                        onClick={handleRemoveButtonClick}
+                      >
+                        <TrashIcon className="size-4" />
+                        <span className="sr-only">Remove</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

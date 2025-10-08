@@ -6,6 +6,7 @@ import {
   Menu,
   Notification,
   app,
+  clipboard,
   dialog,
   ipcMain,
   nativeImage,
@@ -231,6 +232,11 @@ import { getUploadOnceAvailable } from "./platform";
         ...uploadedList,
       ].slice(0, 10);
       setTrayMenu();
+
+      if (event.writesClipboard) {
+        clipboard.writeText(firstUploadResponse.permalink_url);
+      }
+
       // Store minimal data
       uploadedStore.set(fileID, true);
     } catch (exception) {
