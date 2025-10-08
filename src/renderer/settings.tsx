@@ -31,10 +31,9 @@ const App: FunctionComponent = () => {
   const [watchlist, setWatchlist] = useState(initialWatchlist);
 
   return (
-    <div className="container mx-auto px-4 py-4 text-slate-700 text-sm">
-      <h2 className="mb-4 font-medium text-2xl">Settings</h2>
-
+    <div className="min-h-screen bg-zinc-50 p-6 text-zinc-950 dark:bg-zinc-950 dark:text-white">
       <form
+        className="mx-auto max-w-3xl space-y-10"
         onSubmit={async (event) => {
           event.preventDefault();
           await electronAPI.setToConfigStore(
@@ -45,39 +44,53 @@ const App: FunctionComponent = () => {
           await electronAPI.restart();
         }}
       >
-        <label className="block mb-4">
-          <span className="block font-medium">Gyazo API access token</span>
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Gyazo API access token
+          </span>
           <input
             type="password"
-            className="mt-1 px-3 py-2 bg-white border border-slate-300 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-violet-500 block w-full rounded-md sm:text-sm focus:ring-1"
             placeholder="XXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXXX"
             value={gyazoAccessToken}
             onChange={(event) => {
               setGyazoAccessToken(event.target.value);
             }}
+            className="block w-full rounded-lg border border-zinc-950/10 bg-transparent px-4 py-2 text-base/6 text-zinc-950 placeholder:text-zinc-500 focus:border-zinc-950/20 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:border-white/15 dark:text-white dark:placeholder:text-zinc-400 dark:focus:border-white/20 dark:focus:ring-blue-400"
           />
         </label>
 
-        <div className="mb-4">
-          <div className="font-medium">Watchlist</div>
-          Directories to be watched and uploaded to Gyazo. <br />
-          Only upload files that were placed later.
-          <table className="border-collapse mb-2 table-auto w-full">
-            <thead>
-              <tr>
-                <th className="border-b font-medium p-2 text-left">Path</th>
-                <th className="border-b font-medium p-2"></th>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              Watchlist
+            </div>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Directories to be watched and uploaded to Gyazo. <br />
+              Only upload files that were placed later.
+            </p>
+          </div>
+
+          <table className="min-w-full table-fixed border-collapse text-left text-sm/6 text-zinc-950 dark:text-white">
+            <thead className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <tr className="border-b border-zinc-200 dark:border-white/10">
+                <th className="px-0 py-2">Path</th>
+                <th className="w-12 px-0 py-2 text-right"></th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
               {watchlist.map(({ path }, index) => (
-                <tr key={index}>
-                  <td className="border-b border-slate-100 p-2">{path}</td>
-                  <td className="border-b border-slate-100 p-2 text-center">
+                <tr
+                  key={index}
+                  className="transition hover:bg-zinc-100/60 dark:hover:bg-white/5"
+                >
+                  <td className="max-w-[18rem] truncate py-3 pr-4 text-sm text-zinc-700 dark:text-zinc-200 sm:max-w-none">
+                    {path}
+                  </td>
+                  <td className="py-3 text-right">
                     <button
                       type="button"
-                      className="px-2 py-2 rounded-full bg-white hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-0 active:bg-gray-200"
+                      className="inline-flex size-9 items-center justify-center rounded-md text-zinc-500 transition hover:text-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
                       onClick={() => {
                         setWatchlist((prevWatchlist) => [
                           ...prevWatchlist.slice(0, index),
@@ -85,16 +98,18 @@ const App: FunctionComponent = () => {
                         ]);
                       }}
                     >
-                      <TrashIcon className="w-4" />
+                      <TrashIcon className="size-4" />
+                      <span className="sr-only">Remove</span>
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
           <button
             type="button"
-            className="px-2 py-2 rounded-full bg-violet-500 text-white hover:bg-violet-600 focus:bg-violet-600 focus:outline-none focus:ring-0 active:bg-violet-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-950/10 bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-blue-500 dark:hover:bg-blue-400"
             onClick={async () => {
               const paths = await electronAPI.selectDirectory();
               setWatchlist((prevWatchlist) => [
@@ -103,14 +118,15 @@ const App: FunctionComponent = () => {
               ]);
             }}
           >
-            <PlusIcon className="w-4" />
+            <PlusIcon className="size-4" />
+            <span>Add directory</span>
           </button>
         </div>
 
         <div className="flex justify-end">
           <button
             type="submit"
-            className="bg-violet-500 hover:bg-violet-600 focus:outline-none focus:ring focus:ring-violet-300 active:bg-violet-700 px-5 py-2 rounded font-medium text-white"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-950/10 bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-transparent"
           >
             Save &amp; restart
           </button>
@@ -126,8 +142,8 @@ createRoot(container).render(
   <StrictMode>
     <Suspense
       fallback={
-        <div className="flex justify-center my-4">
-          <div className="animate-spin h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full"></div>
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+          <div className="size-8 animate-spin rounded-full border-2 border-zinc-300 border-t-blue-500 dark:border-zinc-700 dark:border-t-blue-400"></div>
         </div>
       }
     >
