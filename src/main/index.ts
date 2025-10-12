@@ -27,7 +27,7 @@ import { getUploadOnceAvailable } from "./platform";
 
 (async () => {
   if (process.env.npm_lifecycle_event !== "start") {
-    const autoLaunch = new AutoLaunch({ name: "gyazemon" });
+    const autoLaunch = new AutoLaunch({ name: "Gyazemon" });
     await autoLaunch.enable();
   }
   await app.whenReady();
@@ -84,7 +84,7 @@ import { getUploadOnceAvailable } from "./platform";
       resolve(__dirname, "../../../resources/trayTemplate@2x.png")
     )
   );
-  tray.setToolTip("gyazemon");
+  tray.setToolTip("Gyazemon");
 
   const uploadQueue = new PQueue({ concurrency: 1 });
   let uploadedList: { title: string; permalink_url: string }[] = [];
@@ -347,7 +347,7 @@ import { getUploadOnceAvailable } from "./platform";
           formData.append("access_token", gyazoAccessToken);
           formData.append("imagedata", new Blob([loadedData]), "dummy.png");
           formData.append("referer_url", String(url));
-          formData.append("app", "gyazemon");
+          formData.append("app", "Gyazemon");
           formData.append("title", title);
           formData.append("desc", description);
           formData.append(
