@@ -9,7 +9,6 @@ import {
   clipboard,
   dialog,
   ipcMain,
-  nativeImage,
   shell,
 } from "electron";
 import openAboutWindow from "electron-about-window";
@@ -79,16 +78,24 @@ import { getUploadOnceAvailable } from "./platform";
     app.quit();
   });
 
-  const tray = new Tray(
-    nativeImage.createFromPath(
-      resolve(__dirname, "../../../resources/trayTemplate@2x.png")
-    )
-  );
-  tray.setToolTip("Gyazemon");
-
-  const uploadQueue = new PQueue({ concurrency: 1 });
+  let processingCount = 0;
   let uploadedList: { title: string; permalink_url: string }[] = [];
-  const setTrayMenu = () => {
+  const uploadQueue = new PQueue({ concurrency: 1 });
+  const tray = new Tray(
+    resolve(__dirname, "../../../resources/tray-icons/Template@2x.png")
+  );
+  const updateTray = () => {
+    tray.setImage(
+      resolve(
+        __dirname,
+        `../../../resources/tray-icons/${
+          processingCount ? "processing" : ""
+        }Template@2x.png`
+      )
+    );
+
+    tray.setToolTip("Gyazemon");
+
     const queueLength = uploadQueue.pending + uploadQueue.size;
     tray.setContextMenu(
       Menu.buildFromTemplate([
@@ -205,7 +212,9 @@ import { getUploadOnceAvailable } from "./platform";
 
     const file = await readFile(event.path);
     const fileID = [
-      ...new Uint8Array(await crypto.subtle.digest("SHA-256", file)),
+      ...new Uint8Array(
+        await crypto.subtle.digest("SHA-256", new Uint8Array(file))
+      ),
     ]
       .map((uint8) => uint8.toString(16).padStart(2, "0"))
       .join("");
@@ -214,6 +223,9 @@ import { getUploadOnceAvailable } from "./platform";
       return;
     }
 
+    log.debug("processing");
+    processingCount++;
+    updateTray();
     try {
       log.debug("load");
       const loadedDataList = await load({ ext, file });
@@ -231,7 +243,7 @@ import { getUploadOnceAvailable } from "./platform";
         { ...firstUploadResponse, title: basename(event.path) },
         ...uploadedList,
       ].slice(0, 10);
-      setTrayMenu();
+      updateTray();
 
       if (event.writesClipboard) {
         clipboard.writeText(firstUploadResponse.permalink_url);
@@ -245,6 +257,9 @@ import { getUploadOnceAvailable } from "./platform";
         title: "Failed to upload to Gyazo. ",
         body: `${event.path}\nPlease check the log. `,
       }).show();
+    } finally {
+      processingCount--;
+      updateTray();
     }
   };
 
@@ -279,7 +294,7 @@ import { getUploadOnceAvailable } from "./platform";
             const pageImages: Buffer[] = [];
             ipcMain.handleOnce("getPDF", (): ArrayBuffer => {
               log.debug("getPDF");
-              return file;
+              return new Uint8Array(file).buffer;
             });
             ipcMain.handle("setPageImage", (_event, pageImage: ArrayBuffer) => {
               pageImages.push(Buffer.from(pageImage));
@@ -345,7 +360,11 @@ import { getUploadOnceAvailable } from "./platform";
           url.pathname = pathToFileURL(path).pathname;
 
           formData.append("access_token", gyazoAccessToken);
-          formData.append("imagedata", new Blob([loadedData]), "dummy.png");
+          formData.append(
+            "imagedata",
+            new Blob([new Uint8Array(loadedData)]),
+            "dummy.png"
+          );
           formData.append("referer_url", String(url));
           formData.append("app", "Gyazemon");
           formData.append("title", title);
@@ -388,7 +407,7 @@ import { getUploadOnceAvailable } from "./platform";
             // Rate Limits https://gyazo.com/api/docs/errors
             if (uploadResponse.status === 429) {
               uploadQueue.clear();
-              setTrayMenu();
+              updateTray();
 
               new Notification({
                 title: "Canceled the upload processes to Gyazo. ",
@@ -414,11 +433,11 @@ import { getUploadOnceAvailable } from "./platform";
     return uploadResponses[0].json();
   };
 
-  setTrayMenu();
-  uploadQueue.on("add", setTrayMenu);
-  uploadQueue.on("next", setTrayMenu);
-  eventTarget.addEventListener("online", setTrayMenu);
-  eventTarget.addEventListener("offline", setTrayMenu);
+  updateTray();
+  uploadQueue.on("add", updateTray);
+  uploadQueue.on("next", updateTray);
+  eventTarget.addEventListener("online", updateTray);
+  eventTarget.addEventListener("offline", updateTray);
 
   if (gyazoAccessToken) {
     for (const watch of watchlist) {
