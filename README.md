@@ -11,6 +11,8 @@ Headless Gyazo app for desktop PC.
 it does not have a screenshot-taking function.
 Instead, it watches directories and uploads media to Gyazo.
 
+Gyazo + **daemon** = Gyazemon
+
 ## Download
 
 Download the app from [releases page](https://github.com/hata6502/gyazemon/releases).
