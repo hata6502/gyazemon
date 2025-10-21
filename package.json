@@ -1,6 +1,6 @@
 {
   "name": "gyazemon",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "private": true,
   "description": "Headless Gyazo app for desktop PC. ",
   "homepage": "https://github.com/hata6502/gyazemon",
@@ -12,8 +12,8 @@
   "main": "dist/main/main/index.js",
   "scripts": {
     "build": "run-p build:**",
-    "build:main": "tsc --project src/main",
-    "build:preload": "tsc --project src/preload",
+    "build:main": "tsc --noCheck --project src/main",
+    "build:preload": "tsc --noCheck --project src/preload",
     "build:renderer:tailwindcss": "npx @tailwindcss/cli -i src/renderer/tailwind.css -o dist/renderer/tailwind.css --minify",
     "build:renderer:online-status": "esbuild src/renderer/online-status.ts --bundle --format=esm --minify --outfile=dist/renderer/online-status.js",
     "build:renderer:pdf": "esbuild src/renderer/pdf.ts --bundle --format=esm --minify --outfile=dist/renderer/pdf.js",
@@ -74,7 +74,8 @@
     "electron-store": "^8.1.0",
     "electron-update-notifier": "^1.7.0",
     "p-queue": "^6.6.2",
-    "pdfjs-dist": "^4.2.67"
+    "pdfjs-dist": "^4.2.67",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.4.0",
