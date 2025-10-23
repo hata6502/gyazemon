@@ -12,11 +12,6 @@ jobs:
           - windows-latest
           - macos-latest
         arch: [x64, arm64]
-        exclude:
-          - os: windows-latest
-            arch: arm64
-          - os: macos-latest
-            arch: arm64
     steps:
       # https://github.com/electron/forge/issues/2807
       - if: runner.os == 'macOS'
