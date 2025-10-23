@@ -451,13 +451,11 @@ import { getUploadOnceAvailable } from "./platform";
       cachePath: resolve(__dirname, "../../.."),
     });
     try {
-      const recognizeResult = await Promise.race([
-        tesseractWorker.recognize(loadedData, undefined, { blocks: true }),
-        new Promise<void>((resolve) => setTimeout(resolve, 5 * 1000)),
-      ]);
-      if (!recognizeResult) {
-        return;
-      }
+      const recognizeResult = await tesseractWorker.recognize(
+        loadedData,
+        undefined,
+        { blocks: true }
+      );
 
       const lines =
         recognizeResult.data.blocks
