@@ -20,9 +20,7 @@ Download the app from [releases page](https://github.com/hata6502/gyazemon/relea
 - Ubuntu
   - AMD: gyazemon_x.x.x_amd64.deb
   - ARM: gyazemon_x.x.x_arm64.deb
-- Mac
-  - Apple Silicon: gyazemon-x.x.x-arm64.dmg
-  - Intel: gyazemon-x.x.x-x64.dmg
+- Mac: gyazemon-x.x.x-x64.dmg
 - Windows: gyazemon-x.x.x.Setup.exe
 
 ## Usage
