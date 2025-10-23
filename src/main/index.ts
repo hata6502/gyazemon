@@ -360,7 +360,7 @@ import { getUploadOnceAvailable } from "./platform";
           url.hostname = hostname();
           url.pathname = pathToFileURL(path).pathname;
 
-          const basisFontSize = 28;
+          const basisFontSize = 32;
           const detectedFontSize = await detectFontSize(loadedData);
           const zoom = Math.min(
             Math.max(basisFontSize / (detectedFontSize ?? basisFontSize), 0.4),
