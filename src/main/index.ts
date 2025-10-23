@@ -447,7 +447,9 @@ import { getUploadOnceAvailable } from "./platform";
   const detectFontSize = async (loadedData: Buffer) => {
     // https://help.gyazo.com/--5de75e1e040e1d0017df436d
     // https://github.com/tesseract-ocr/tessdata_fast?tab=readme-ov-file#example---jpn-and--japanese
-    const tesseractWorker = await createWorker(["jpn"]);
+    const tesseractWorker = await createWorker(["jpn"], undefined, {
+      cachePath: resolve(__dirname, "../../.."),
+    });
     try {
       const recognizeResult = await Promise.race([
         tesseractWorker.recognize(loadedData, undefined, { blocks: true }),
