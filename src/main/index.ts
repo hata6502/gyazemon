@@ -445,16 +445,9 @@ import { getUploadOnceAvailable } from "./platform";
   };
 
   const detectFontSize = async (loadedData: Buffer) => {
-    const tesseractWorker = await createWorker(
-      // https://help.gyazo.com/--5de75e1e040e1d0017df436d
-      // https://github.com/tesseract-ocr/tessdata_fast?tab=readme-ov-file#example---jpn-and--japanese
-      ["jpn"],
-      undefined,
-      {
-        // https://github.com/naptha/tesseract.js/blob/master/docs/performance.md#consider-using-fast-language-data
-        langPath: "https://tessdata.projectnaptha.com/4.0.0_fast",
-      }
-    );
+    // https://help.gyazo.com/--5de75e1e040e1d0017df436d
+    // https://github.com/tesseract-ocr/tessdata_fast?tab=readme-ov-file#example---jpn-and--japanese
+    const tesseractWorker = await createWorker(["jpn"]);
     try {
       const recognizeResult = await Promise.race([
         tesseractWorker.recognize(loadedData, undefined, { blocks: true }),

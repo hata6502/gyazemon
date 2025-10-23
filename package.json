@@ -25,6 +25,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
+    "prepare": "curl 'https://tessdata.projectnaptha.com/4.0.0_fast/jpn.traineddata.gz' | gunzip > jpn.traineddata",
     "publish": "electron-forge publish"
   },
   "config": {
