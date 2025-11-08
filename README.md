@@ -1,4 +1,4 @@
-# Gyazemon
+# Gyazemo
 
 <img src="https://i.gyazo.com/32df5285f7761fd9713061b58ee9a8ac.png" width="256"/>
 
