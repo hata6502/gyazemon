@@ -19,7 +19,6 @@ import { readFile, stat } from "fs/promises";
 import { hostname, userInfo } from "os";
 import PQueue from "p-queue";
 import { basename, extname, resolve } from "path";
-import { createWorker } from "tesseract.js";
 import { pathToFileURL } from "url";
 
 import { Watch, WatchV2, toWatchlistV2 } from "../watch-list";
@@ -360,15 +359,8 @@ import { getUploadOnceAvailable } from "./platform";
           url.hostname = hostname();
           url.pathname = pathToFileURL(path).pathname;
 
-          const basisFontSize = 32;
-          const detectedFontSize = await detectFontSize(loadedData);
-          const zoom = Math.min(
-            Math.max(basisFontSize / (detectedFontSize ?? basisFontSize), 0.4),
-            2.5
-          );
           // Retina display
-          const scale = 2 / zoom;
-          log.debug("zoom", zoom);
+          const scale = 2;
 
           formData.append("access_token", gyazoAccessToken);
           formData.append(
@@ -442,49 +434,6 @@ import { getUploadOnceAvailable } from "./platform";
     );
 
     return uploadResponses[0].json();
-  };
-
-  const detectFontSize = async (loadedData: Buffer) => {
-    // https://help.gyazo.com/--5de75e1e040e1d0017df436d
-    // https://github.com/tesseract-ocr/tessdata_fast?tab=readme-ov-file#example---jpn-and--japanese
-    const tesseractWorker = await createWorker(["jpn"], undefined, {
-      cachePath: resolve(__dirname, "../../.."),
-    });
-    try {
-      const recognizeResult = await tesseractWorker.recognize(
-        loadedData,
-        undefined,
-        { blocks: true }
-      );
-
-      const lines =
-        recognizeResult.data.blocks
-          ?.flatMap(({ paragraphs }) =>
-            paragraphs.flatMap(({ lines }) => lines)
-          )
-          .filter(({ confidence }) => confidence >= 80) ?? [];
-      const charCount = lines.reduce(
-        (sum, { text }) => sum + [...new Intl.Segmenter().segment(text)].length,
-        0
-      );
-      if (!charCount) {
-        return;
-      }
-
-      const averageRowHeight =
-        lines.reduce(
-          (sum, { rowAttributes, text }) =>
-            sum +
-            // @ts-expect-error
-            rowAttributes.rowHeight *
-              [...new Intl.Segmenter().segment(text)].length,
-          0
-        ) / charCount;
-
-      return averageRowHeight;
-    } finally {
-      await tesseractWorker.terminate();
-    }
   };
 
   updateTray();
