@@ -27,44 +27,6 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish"
   },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "icon": "resources/icons/icon"
-      },
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "loadingGif": "resources/install-spinner.gif",
-            "setupIcon": "resources/icons/icon.ico"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-dmg"
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {
-            "icon": "resources/icons/1024x1024.png"
-          }
-        }
-      ],
-      "publishers": [
-        {
-          "name": "@electron-forge/publisher-github",
-          "config": {
-            "repository": {
-              "owner": "hata6502",
-              "name": "gyazemon"
-            },
-            "prerelease": false,
-            "draft": true
-          }
-        }
-      ]
-    }
-  },
   "dependencies": {
     "auto-launch": "^5.0.5",
     "chokidar": "^3.5.3",
